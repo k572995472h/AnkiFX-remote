@@ -14,16 +14,57 @@ export function runNone(container, marqueeText, position = 'bottom') {
     document.documentElement.style.setProperty('--afx-body-bg', 'transparent');
     document.documentElement.style.setProperty('--afx-none-bg', 'transparent');
 
-    // 2. Eruda Integration for mobile debugging
+    const scanForWhiteBackgrounds = () => {
+        console.log("🔍 [AnkiFX Debug] Scanning DOM for white background elements...");
+        const results = [];
+        const all = document.querySelectorAll('*');
+        all.forEach(el => {
+            // Skip eruda itself
+            if (el.closest('.eruda-container')) return;
+            
+            const style = window.getComputedStyle(el);
+            const bg = style.backgroundColor;
+            // Check for white in various formats (computed style returns rgb/rgba in most browsers)
+            if (bg === 'rgb(255, 255, 255)' || bg === 'white' || bg === '#ffffff' || bg === '#fff') {
+                results.push({
+                    tag: el.tagName,
+                    id: el.id,
+                    classes: el.className,
+                    background: bg,
+                    element: el
+                });
+            }
+        });
+        
+        if (results.length > 0) {
+            console.warn(`⚠️ [AnkiFX Debug] Found ${results.length} white elements:`, results);
+            results.forEach(r => {
+                const selector = `${r.tag}${r.id ? '#' + r.id : ''}${r.classes ? '.' + r.classes.toString().split(' ').join('.') : ''}`;
+                console.log(`- %c${selector}`, 'color: #ff00ff; font-weight: bold;', r.element);
+            });
+        } else {
+            console.log("✅ [AnkiFX Debug] No white background elements found.");
+        }
+    };
+
+    // 2. Eruda Integration
     if (!window.eruda) {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/eruda';
         script.onload = () => {
-            if (window.eruda) window.eruda.init();
+            if (window.eruda) {
+                window.eruda.init();
+                window.eruda.position({ x: 20, y: 20 });
+                setTimeout(scanForWhiteBackgrounds, 1000);
+            }
         };
         document.head.appendChild(script);
     } else {
-        try { window.eruda.init(); } catch(e) {}
+        try { 
+            window.eruda.init(); 
+            window.eruda.position({ x: 20, y: 20 });
+            setTimeout(scanForWhiteBackgrounds, 1000);
+        } catch(e) {}
     }
 
     // 3. Create a clean transparent canvas for the marquee
