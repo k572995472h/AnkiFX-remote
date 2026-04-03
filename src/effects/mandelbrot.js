@@ -9,8 +9,8 @@ let mousePos = { x: 0, y: 0 };
 let mandelbrotState = {
     targetX: -0.743643887037151,
     targetY: 0.131825904205330,
-    zoomDepth: 13.0,
-    speed: parseFloat(localStorage.getItem('ankifx_mandelbrot_speed')) || 0.025
+    zoomDepth: 11.0,
+    speed: parseFloat(localStorage.getItem('ankifx_mandelbrot_speed')) || 0.15
 };
 
 export const effect = {

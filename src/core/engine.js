@@ -106,6 +106,8 @@ export class AnkiFX {
                 --afx-dialog-h3-size: 1.4rem;
                 --afx-picker-font-size: 13px;
                 --afx-btn-font-size: 15px;
+                --afx-body-bg: #000;
+                --afx-none-bg: var(--afx-bg-color, black);
             }
 
             html, body {
@@ -114,7 +116,7 @@ export class AnkiFX {
                 height: var(--tuner-height) !important;
                 min-height: var(--tuner-height) !important;
                 overflow: hidden !important;
-                background-color: #000 !important;
+                background-color: var(--afx-body-bg, #000) !important;
                 position: relative !important;
             }
 
@@ -146,7 +148,7 @@ export class AnkiFX {
             #ankifx-background {
                 position: fixed; top: 0; left: 0; width: 100%; height: var(--tuner-height);
                 z-index: 1; pointer-events: none;
-                background-color: var(--afx-bg-color, black);
+                background-color: var(--afx-none-bg, var(--afx-bg-color, black));
                 touch-action: none;
             }
 
@@ -155,7 +157,7 @@ export class AnkiFX {
                 z-index: 100; display: flex; flex-direction: column; 
                 justify-content: center; align-items: center;
                 background: rgba(0,0,0,0.25);
-                transition: background 0.5s ease, opacity 0.5s ease; padding: 2rem; box-sizing: border-box;
+                transition: background 0.5s ease, opacity 0.5s ease; padding: 1rem; box-sizing: border-box;
                 color: #fff;
             }
 
@@ -253,16 +255,16 @@ export class AnkiFX {
 
             .afx-dialog {
                 background: rgba(25,25,30,0.96); border: 1px solid rgba(255,255,255,0.15);
-                border-radius: 24px; padding: 1.5rem; max-width: 850px; width: 90%;
+                border-radius: 24px; padding: 1rem; max-width: 850px; width: 92%;
                 box-shadow: 0 30px 80px rgba(0,0,0,0.8); display: flex; flex-direction: column;
                 align-items: center; text-align: center; position: relative;
-                max-height: 90vh; overflow: hidden !important; pointer-events: auto !important;
+                height: 75dvh; max-height: 90vh; overflow: hidden !important; pointer-events: auto !important;
             }
 
             .afx-terms {
                 font-family: 'Courier New', monospace; background: rgba(0,0,0,0.4);
                 padding: 1.2rem; border-radius: 16px; margin-bottom: 1rem;
-                width: 100%; max-height: 400px; overflow-y: auto;
+                width: 100%; flex: 1; overflow-y: auto;
                 line-height: 1.8; border: 1px solid rgba(255,255,255,0.05);
                 font-size: var(--afx-terms-font-size); color: #ccc;
             }

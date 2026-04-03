@@ -12,7 +12,7 @@ let juliaState = {
     zoomDepth: 10.0,
     targetX: -0.527503,
     targetY: 0.075912,
-    speed: parseFloat(localStorage.getItem('ankifx_julia_speed')) || 0.025
+    speed: parseFloat(localStorage.getItem('ankifx_julia_speed')) || 0.15
 };
 
 export const effect = {
