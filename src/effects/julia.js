@@ -23,9 +23,9 @@ export const effect = {
     preferredTrack: { title: "Acoustica Power Bundle 4", trackTitle: "AiR" },
     presets: [
         { name: 'Black Hole', cRe: -0.8, cIm: 0.156, zoomDepth: 10, targetX: -0.527503, targetY: 0.075912 },
-        { name: 'Electric Lightning', cRe: 0.285, cIm: 0.013, zoomDepth: 6.0, targetX: -0.11, targetY: 0.65 },
-        { name: 'Golden Dragon', cRe: -0.4, cIm: 0.6, zoomDepth: 18.0, targetX: 0.0, targetY: 0.0 },
-        { name: 'Filigree', cRe: -0.70176, cIm: -0.3842, zoomDepth: 11.5, targetX: -0.08, targetY: -0.68 },
+        { name: 'Electric Lightning', cRe: 0.285, cIm: 0.013, zoomDepth: 6.0, targetX: -0.106662, targetY: 0.656613 },
+        { name: 'Golden Dragon', cRe: -0.4, cIm: 0.6, zoomDepth: 9.0, targetX: -0.042175, targetY: -0.036744 },
+        { name: 'Filigree', cRe: -0.70176, cIm: -0.3842, zoomDepth: 10.5, targetX: -0.096904, targetY: -0.656621 },
         { name: 'Fractal Storm', cRe: -0.7269, cIm: 0.1889, zoomDepth: 10.5, targetX: -0.22, targetY: 0.56 },
         { name: 'Seahorse Spiral', cRe: -0.74543, cIm: 0.11301, zoomDepth: 12.0, targetX: -0.5299, targetY: 0.0739 },
     ]
