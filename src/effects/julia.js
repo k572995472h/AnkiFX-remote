@@ -10,8 +10,8 @@ let juliaState = {
     cRe: -0.800,
     cIm: 0.156,
     zoomDepth: 10.0,
-    targetX: -0.5273,
-    targetY: 0.0757,
+    targetX: -0.527503,
+    targetY: 0.075912,
     speed: parseFloat(localStorage.getItem('ankifx_julia_speed')) || 0.025
 };
 
@@ -34,9 +34,9 @@ export const effect = {
 export function runJulia(container, marqueeText, position = 'bottom', config = {}) {
     const initialCRe = config.cRe !== undefined ? config.cRe : -0.8;
     const initialCIm = config.cIm !== undefined ? config.cIm : 0.156;
-    const zoomDepth = config.zoomDepth !== undefined ? config.zoomDepth : 10.8;
-    const targetX = config.targetX !== undefined ? config.targetX : -0.5273;
-    const targetY = config.targetY !== undefined ? config.targetY : 0.0757;
+    const zoomDepth = config.zoomDepth !== undefined ? config.zoomDepth : 10.0;
+    const targetX = config.targetX !== undefined ? config.targetX : -0.527503;
+    const targetY = config.targetY !== undefined ? config.targetY : 0.075912;
 
     // 1. Dual-Canvas Setup
     const wrapper = document.createElement('div');
@@ -231,9 +231,9 @@ export function runJulia(container, marqueeText, position = 'bottom', config = {
             // Initialize State from Config
             juliaState.cRe = config.cRe !== undefined ? config.cRe : -0.8;
             juliaState.cIm = config.cIm !== undefined ? config.cIm : 0.156;
-            juliaState.zoomDepth = config.zoomDepth !== undefined ? config.zoomDepth : 10.8;
-            juliaState.targetX = config.targetX !== undefined ? config.targetX : -0.5273;
-            juliaState.targetY = config.targetY !== undefined ? config.targetY : 0.0757;
+            juliaState.zoomDepth = config.zoomDepth !== undefined ? config.zoomDepth : 10.0;
+            juliaState.targetX = config.targetX !== undefined ? config.targetX : -0.527503;
+            juliaState.targetY = config.targetY !== undefined ? config.targetY : 0.075912;
 
             tunerRows.push(createSlider('C-RE', 'cRe', -1.5, 1.0, 0.001, 6));
             tunerRows.push(createSlider('C-IM', 'cIm', -1.0, 1.0, 0.001, 6));
