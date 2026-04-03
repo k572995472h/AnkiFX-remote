@@ -315,11 +315,17 @@ export class AnkiFX {
         const currentEffect = localStorage.getItem('ankifx_preferred_effect') || 'geometry';
         if (currentEffect === 'debug') tuner.classList.add('active');
 
-        const savedOffset = localStorage.getItem('ankifx_tuner_offset') || 0;
+        const savedOffset = localStorage.getItem('ankifx_tuner_offset');
+        const style = getComputedStyle(document.documentElement);
+        const header = parseInt(style.getPropertyValue('--io-header')) || 0;
+        
+        // If never touched, default to -header
+        const initialOffset = savedOffset !== null ? parseInt(savedOffset) : -header;
+        this.tunerAutoUpdate = savedOffset === null;
         
         tuner.innerHTML = `
             <div style="font-weight: bold; color: #ff00ff; margin-bottom: 5px;">VIEWPORT TUNER</div>
-            <input type="range" id="afx-tuner-range" min="-100" max="300" value="${savedOffset}">
+            <input type="range" id="afx-tuner-range" min="-300" max="300" value="${initialOffset}">
             <div style="margin: 5px 0 10px;">OFFSET: <span id="afx-tuner-offset-val" class="val">0</span>px</div>
             <div style="font-size: 10px; opacity: 0.7; margin-bottom: 15px; line-height: 1.4;">
                 IO-HEADER: <span id="afx-tuner-header-val">0</span>px<br>
@@ -331,6 +337,7 @@ export class AnkiFX {
 
         const slider = document.getElementById('afx-tuner-range');
         slider.oninput = () => {
+            this.tunerAutoUpdate = false;
             localStorage.setItem('ankifx_tuner_offset', slider.value);
             this.updateTuner();
         };
@@ -346,7 +353,37 @@ export class AnkiFX {
         }
 
         // Initial update
-        setTimeout(() => this.updateTuner(), 500);
+        this.updateTuner();
+
+        // Monitor --io-header for changes (e.g. AnkiMobile delayed set)
+        let lastHeader = header;
+        const monitorIv = setInterval(() => {
+            const currentStyle = getComputedStyle(document.documentElement);
+            const currentHeader = parseInt(currentStyle.getPropertyValue('--io-header')) || 0;
+            if (currentHeader !== lastHeader) {
+                lastHeader = currentHeader;
+                if (this.tunerAutoUpdate) {
+                    slider.value = -currentHeader;
+                }
+                this.updateTuner();
+            }
+        }, 50);
+
+        // Slow down monitoring after 5 seconds to save battery
+        setTimeout(() => {
+            clearInterval(monitorIv);
+            setInterval(() => {
+                const currentStyle = getComputedStyle(document.documentElement);
+                const currentHeader = parseInt(currentStyle.getPropertyValue('--io-header')) || 0;
+                if (currentHeader !== lastHeader) {
+                    lastHeader = currentHeader;
+                    if (this.tunerAutoUpdate) {
+                        slider.value = -currentHeader;
+                    }
+                    this.updateTuner();
+                }
+            }, 1000);
+        }, 5000);
     }
 
     static updateTuner() {
