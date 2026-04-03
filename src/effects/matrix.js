@@ -30,8 +30,9 @@ export function runMatrix(container, marqueeText, position = 'bottom') {
     let time = 0;
 
     function resize() {
-        w = canvas.width = container.clientWidth;
-        h = canvas.height = container.clientHeight;
+        const rect = container.getBoundingClientRect();
+        w = canvas.width = rect.width;
+        h = canvas.height = rect.height;
         
         const colCount = Math.floor(w / fontSize);
         for(let i = 0; i < colCount; i++) {

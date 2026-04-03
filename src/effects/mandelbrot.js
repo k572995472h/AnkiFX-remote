@@ -127,8 +127,9 @@ export function runMandelbrot(container, marqueeText, position = 'bottom') {
     // 3. Viewport & Resize Management (High-DPI Support)
     let w, h;
     function resize() {
-        w = container.clientWidth;
-        h = container.clientHeight;
+        const rect = container.getBoundingClientRect();
+        w = rect.width;
+        h = rect.height;
         const dpr = window.devicePixelRatio || 1;
         
         glCanvas.width = w * dpr;

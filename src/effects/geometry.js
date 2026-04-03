@@ -24,8 +24,9 @@ export function runGeometry(container, marqueeText, position = 'bottom') {
     let w, h;
 
     function resize() {
-        w = canvas.width = container.clientWidth;
-        h = canvas.height = container.clientHeight;
+        const rect = container.getBoundingClientRect();
+        w = canvas.width = rect.width;
+        h = canvas.height = rect.height;
     }
     window.addEventListener('resize', resize);
     resize();

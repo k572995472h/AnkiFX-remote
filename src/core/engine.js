@@ -50,12 +50,16 @@ export class AnkiFX {
         });
 
         this.injectCSS();
-
-        // Lock scroll and zero out margins to prevent the 10px top gap in AnkiMobile
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        if (isIOS) {
-            document.documentElement.classList.add('afx-scroll-lock');
-        }
+        
+        // Viewport Tuner System
+        this.initTuner(debug);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => this.updateTuner(), 100);
+        });
+        window.addEventListener('resize', () => {
+             // Subtle delay so Anki/iOS can settle their layout
+             setTimeout(() => this.updateTuner(), 50);
+        });
 
         // Pass isMobile and debug down to the UI injector
         const { overlay, background } = this.injectUI(config, options, isMobile, debug);
@@ -76,196 +80,299 @@ export class AnkiFX {
             :root {
                 --afx-bg-color: rgba(10, 10, 15, 0.25);
                 --afx-text-color: #f0f0f0;
+                --afx-accent: #ff00ff;
+                --tuner-height: 100dvh;
             }
-            
+
+            html, body {
+                margin: 0 !important; padding: 0 !important;
+                width: 100% !important;
+                height: var(--tuner-height) !important;
+                min-height: var(--tuner-height) !important;
+                overflow: hidden !important;
+                background-color: #000 !important;
+                position: relative !important;
+            }
+
+            .card {
+                margin: 0 !important; padding: 0 !important;
+                width: 100% !important;
+                height: var(--tuner-height) !important;
+                overflow: hidden !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                position: relative !important;
+            }
+
+            #qa {
+                position: relative !important;
+                z-index: 5 !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important; padding: 0 !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+
+            body > *, #content, #container, #outer, #top-bar, #bottom-bar {
+                padding-bottom: 0 !important;
+                margin-bottom: 0 !important;
+            }
+
             #ankifx-background {
-                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                z-index: -1;
+                position: fixed; top: 0; left: 0; width: 100%; height: var(--tuner-height);
+                z-index: 1; pointer-events: none;
                 background-color: var(--afx-bg-color, black);
+                touch-action: none;
             }
-            
-            #ankifx-overlay { 
-                position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
-                width: 100vw; height: 100vh;
-                height: 100dvh; height: -webkit-fill-available;
-                background: rgba(0,0,0,0.6); z-index: 9999; display: flex; 
-                align-items: center; justify-content: center; padding: 1rem; 
-                overflow: hidden; font-family: arial; box-sizing: border-box;
-                transition: background-color 0.5s;
+
+            #ankifx-overlay {
+                position: fixed; top: 0; left: 0; width: 100%; height: var(--tuner-height);
+                z-index: 100; display: flex; flex-direction: column; 
+                justify-content: center; align-items: center;
+                background: rgba(0,0,0,0.25);
+                transition: background 0.5s ease, opacity 0.5s ease; padding: 2rem; box-sizing: border-box;
+                color: #fff;
             }
-            
-            /* Hide controls initially in the disclaimer */
-            .afx-dual-control-stack,
-            .afx-effect-selector-container,
-            .afx-playback-btn {
+
+            /* --- GLOBAL VISIBILITY RULES --- */
+            #afx-btn-back, #afx-btn-skip, .afx-dual-control-stack, #afx-controls-stack-right {
                 display: none !important;
             }
-            
+
+            /* Back/Skip only visible when music is playing */
+            #ankifx-overlay:not(.afx-music-playing) #afx-btn-back,
+            #ankifx-overlay:not(.afx-music-playing) #afx-btn-skip {
+                display: none !important;
+            }
+
+            /* Nav buttons only visible if agreed AND music is ON */
+            .afx-agreed-state.afx-bgm-active #afx-btn-back,
+            .afx-agreed-state.afx-bgm-active #afx-btn-skip {
+                display: flex !important;
+            }
+
+            /* --- AGREED STATE: SHOW CONTROLS --- */
             .afx-agreed-state {
                 background: transparent !important;
-                pointer-events: none; /* Let clicks pass to Anki card */
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                pointer-events: none !important;
             }
+
             .afx-agreed-state .afx-dialog {
-                background: transparent !important; border: none !important; box-shadow: none !important;
-                backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-                padding: 0 !important; max-width: none !important; width: 100% !important; height: 100% !important;
-                pointer-events: none;
-            }
-            .afx-agreed-state .afx-terms,
-            .afx-agreed-state #afx-consent-btn {
                 display: none !important;
             }
-            .afx-agreed-state .afx-action-row {
-                position: static; margin: 0; padding: 0; pointer-events: none;
-            }
-            
-            /* Show and position controls after agree */
+
+            /* Reveal corner controls only after agreement */
             .afx-agreed-state .afx-dual-control-stack,
-            .afx-agreed-state .afx-effect-selector-container {
+            .afx-agreed-state #afx-controls-stack-right {
                 display: flex !important;
-                pointer-events: auto;
+                pointer-events: auto !important;
+                position: fixed !important;
+                z-index: 10001 !important;
+                flex-direction: column;
+                gap: 8px;
             }
             
-            /* Playback buttons only show if BGM is active */
-            .afx-agreed-state.afx-bgm-active .afx-playback-btn {
-                display: flex !important;
-                pointer-events: auto;
-            }
-            
-            .afx-agreed-state #afx-btn-back {
-                position: fixed !important; top: 10px !important; left: 10px !important; margin: 0; z-index: 10000;
-            }
-            .afx-agreed-state #afx-btn-skip {
-                position: fixed !important; top: 10px !important; right: 10px !important; margin: 0; z-index: 10000;
-            }
-            .afx-agreed-state .afx-dual-control-stack {
-                position: fixed !important; bottom: 10px !important; left: 10px !important; 
-                margin: 0; z-index: 10000; padding: 0.6rem; background: rgba(0,0,0,0.5); 
-                border-radius: 8px; flex-direction: column !important; align-items: flex-start !important;
-            }
-            .afx-agreed-state #afx-effect-selector-container {
-                position: fixed !important; bottom: 10px !important; right: 10px !important; 
-                top: auto !important;
-                margin: 0; z-index: 10000; padding: 0; background: rgba(0,0,0,0.5); 
-                border-radius: 8px; width: auto;
-            }
-            
-            html.afx-scroll-lock, html.afx-scroll-lock body {
-                margin: 0 !important; padding: 0 !important;
-                overflow: hidden !important;
-                height: 100% !important;
-                width: 100% !important;
-            }
-            
-            .afx-dialog { 
-                display: flex; flex-direction: column;
-                background-color: var(--afx-bg-color, rgba(10, 10, 15, 0.25));
-                color: var(--afx-text-color, #f0f0f0);
-                padding: 2rem; border-radius: 16px; max-width: 800px; width: 100%;
-                max-height: 100%; overflow-y: auto;
-                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.1);
-                backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-                border: 1px solid rgba(255, 255, 255, 0.15); box-sizing: border-box;
-                text-align: center; position: relative; z-index: 10;
-            }
-            
-            .afx-terms { 
-                font-family: 'Courier New', monospace; 
-                background: linear-gradient(135deg, rgba(20,20,25,0.4), rgba(5,5,10,0.2)); 
-                color: #fff; padding: 1.5em; border-radius: 12px; line-height: 1.6; 
-                border: 1px solid rgba(255,255,255,0.05); overflow-y: auto; 
-                flex-shrink: 1; text-align: left; 
-            }
-            
-            .afx-terms h3 { margin-top: 0; text-align: center; color: #ff6b6b; text-shadow: 0 2px 10px rgba(255,50,50,0.8); }
-            
-            .afx-action-row {
-                display: flex; justify-content: center; align-items: stretch;
-                margin-top: 1.5rem; gap: 1rem; flex-wrap: wrap; width: 100%;
+            /* Navigation buttons (top corners) */
+            #afx-btn-back, #afx-btn-skip {
+                pointer-events: auto !important;
+                position: fixed !important;
+                z-index: 10001 !important;
             }
 
-            .afx-btn { 
-                margin: 0; padding: 0.8rem 2rem; font-size: 1.1rem; 
-                font-weight: bold; color: #fff; border-radius: 8px; 
-                border: 1px solid rgba(255,255,255,0.4); backdrop-filter: blur(5px); 
-                transition: 0.3s; width: fit-content; flex-shrink: 0; 
-                display: flex; align-items: center; justify-content: center;
-            }
+            /* Precise Pinned Positioning */
+            #afx-btn-back { top: 20px; left: 20px; }
+            #afx-btn-skip { top: 20px; right: 20px; }
             
-            .afx-btn:disabled { background: rgba(100,100,100,0.5); cursor: not-allowed; }
-            .afx-btn:not(:disabled) { background: rgba(40,167,69,0.85); cursor: pointer; }
-            .afx-btn:not(:disabled):hover { background: #33cc77; transform: scale(0.95); }
-
-            .afx-control-row { 
-                display: flex; gap: 12px; color: #fff; font-family: 'Courier New', monospace; 
-                font-weight: bold; background: rgba(0,0,0,0.4); padding: 0.8rem 1.2rem; 
-                border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); align-items: center;
-                backdrop-filter: blur(5px); font-size: 0.9rem; box-sizing: border-box;
+            .afx-dual-control-stack { 
+                bottom: 20px; left: 20px; 
+                align-items: flex-start;
+                background: transparent !important; border: none !important; box-shadow: none !important;
+                padding: 0 !important;
             }
 
-            .afx-dual-control-stack {
-                display: flex; flex-direction: column; gap: 8px;
-            }
-            .afx-dual-control-stack .afx-control-row {
-                padding: 0.5rem 1rem; min-width: 140px; justify-content: space-between;
+            #afx-controls-stack-right {
+                bottom: 20px; right: 20px;
+                align-items: flex-end;
             }
 
-            #afx-effect-selector {
-                background: transparent; color: #fff; border: none; font-family: 'Courier New', monospace;
-                font-weight: bold; outline: none; cursor: pointer; text-align: center; font-size: 0.9rem;
-                padding: 0.8rem 1.2rem; appearance: auto; -webkit-appearance: auto;
+            #afx-effect-selector-container, .afx-control-row { 
+                background: rgba(0,0,0,0.7); 
+                border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); 
+                overflow: hidden; 
+                height: 32px !important;
+                box-sizing: border-box !important;
+                display: flex;
+                align-items: center;
+                padding: 0 10px !important;
+            }
+            #afx-controls-stack-right .afx-effect-selector-container {
+                width: 260px; /* Fixed width for pickers to match best fit */
+            }
+
+            @media (max-width: 768px) {
+                #afx-btn-back { top: calc(10px + env(safe-area-inset-top)) !important; left: calc(10px + env(safe-area-inset-left)) !important; }
+                #afx-btn-skip { top: calc(10px + env(safe-area-inset-top)) !important; right: calc(10px + env(safe-area-inset-right)) !important; }
+                .afx-dual-control-stack { bottom: calc(10px + env(safe-area-inset-bottom)) !important; left: calc(10px + env(safe-area-inset-left)) !important; }
+                #afx-controls-stack-right { bottom: calc(10px + env(safe-area-inset-bottom)) !important; right: calc(10px + env(safe-area-inset-right)) !important; }
+            }
+
+            .afx-dialog {
+                background: rgba(25,25,30,0.96); border: 1px solid rgba(255,255,255,0.15);
+                border-radius: 24px; padding: 1.5rem; max-width: 850px; width: 90%;
+                box-shadow: 0 30px 80px rgba(0,0,0,0.8); display: flex; flex-direction: column;
+                align-items: center; text-align: center; position: relative;
+                max-height: 90vh; overflow: hidden !important; pointer-events: auto !important;
+            }
+
+            .afx-terms {
+                font-family: 'Courier New', monospace; background: rgba(0,0,0,0.4);
+                padding: 1.2rem; border-radius: 16px; margin-bottom: 1rem;
+                width: 100%; max-height: 400px; overflow-y: auto;
+                line-height: 1.7; border: 1px solid rgba(255,255,255,0.05);
+                font-size: 1.1rem; color: #ccc;
+            }
+
+            .afx-btn, .afx-playback-btn, #afx-effect-selector, .afx-control-row {
+                font-family: 'Courier New', Courier, monospace !important;
+                font-size: 13px !important;
+                font-weight: bold !important;
+            }
+
+            .afx-btn {
+                padding: 10px 30px; border-radius: 12px; border: none; cursor: pointer;
+                transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+                font-size: 15px !important; /* Disclaimer button stays slightly bigger */
+            }
+            .afx-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+            .afx-btn:not(:disabled) { background: #28a745; color: white; box-shadow: 0 4px 15px rgba(40,167,69,0.3); }
+            .afx-btn:not(:disabled):hover { transform: scale(1.05); background: #2fb34d; }
+
+            .afx-control-row {
+                width: fit-content;
+                height: 28px;
+                box-sizing: border-box;
+                padding: 0 10px;
+                display: flex;
+                align-items: center;
+                gap: 10px; color: white;
+            }
+
+            #afx-effect-selector, .afx-sub-picker {
+                background: transparent; color: white; border: none; padding: 0 !important; margin: 0 !important;
+                font-family: 'Courier New', monospace; font-weight: bold; cursor: pointer; outline: none; appearance: auto;
+                width: 100%; height: 100%;
+            }
+            #afx-effect-selector option, .afx-sub-picker option {
+                background: #1a1a1a !important;
+                color: #ffffff !important;
+                padding: 12px !important;
+                font-family: 'Courier New', monospace !important;
             }
 
             .afx-playback-btn {
-                background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.2);
-                border-radius: 50%; width: 36px; height: 36px; display: none;
-                align-items: center; justify-content: center; cursor: pointer;
-                backdrop-filter: blur(5px); font-size: 1rem; transition: 0.3s;
-                margin: 0; padding: 0; outline: none; flex-shrink: 0;
+                width: 38px; height: 38px; border-radius: 10px;
+                background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2);
+                color: white; display: flex; align-items: center; justify-content: center;
+                cursor: pointer; transition: 0.2s;
             }
-            .afx-playback-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
-            
-            #afx-effect-selector option {
-                background: #222; color: #fff;
-            }
-            
-            .afx-toggle { position: relative; width: 34px; height: 18px; }
+
+            .afx-toggle { position: relative; width: 28px; height: 15px; }
             .afx-toggle input { opacity: 0; width: 0; height: 0; }
-            
-            .afx-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.3); border-radius: 20px; transition: 0.4s; }
-            .afx-slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.4s; }
-            
-            .afx-toggle input:checked + .afx-slider { background: #ff3c3c; }
-            .afx-toggle input:checked + .afx-slider:before { transform: translateX(16px); }
-            
-            @media screen and (max-width: 768px) {
-                .afx-dialog { padding: 1.5rem; }
+            .afx-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #444; border-radius: 20px; transition: 0.4s; }
+            .afx-slider:before { position: absolute; content: ""; height: 11px; width: 11px; left: 2px; bottom: 2px; background: white; border-radius: 50%; transition: 0.4s; }
+            input:checked + .afx-slider { background: #28a745; }
+            input:checked + .afx-slider:before { transform: translateX(13px); }
+
+            #afx-tuner-ui {
+                position: fixed; top: 20px; right: 20px; z-index: 99999;
+                background: rgba(10,10,15,0.95); border: 1px solid var(--afx-accent);
+                padding: 15px; border-radius: 15px; font-family: 'Courier New', monospace;
+                color: white; display: none; width: 240px; box-shadow: 0 0 30px rgba(255,0,255,0.2);
+                pointer-events: auto !important; box-sizing: border-box;
+                flex-direction: column; align-items: center; text-align: center;
             }
-            @media screen and (max-width: 480px) {
-                .afx-dialog { padding: 1.2rem; }
-                .afx-terms { font-size: 0.8rem; padding: 1rem; }
-                .afx-terms h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
-                .afx-action-row { margin-top: 1rem; gap: 0.4rem; flex-wrap: nowrap; align-items: center; justify-content: center; }
-                .afx-btn { font-size: 0.95rem; padding: 0.4rem 0.8rem; line-height: 1.1; flex-shrink: 1; text-align: center; }
-                .afx-control-row { padding: 0.4rem 0.5rem; font-size: 0.8rem; flex-shrink: 1; gap: 6px; }
-                #afx-effect-selector { padding: 0.4rem 0.5rem; }
-                .desktop-only { display: none; }
-            }
-            
-            /* Debug State Styles - Only apply transparency/hiding if already agreed */
-            #ankifx-overlay.afx-debug-active.afx-agreed-state .afx-dialog {
-                background: transparent; border: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 0;
-            }
-            #ankifx-overlay.afx-debug-active .afx-effect-selector-container {
-                position: fixed; top: 1rem; right: 1rem; width: auto; z-index: 10001;
-                background: rgba(0,0,0,0.7); border: 1px solid #ff0000; border-radius: 8px;
-            }
-            /* Hide selector in disclaimer unless agreed */
-            #ankifx-overlay:not(.afx-agreed-state) .afx-effect-selector-container {
-                display: none !important;
-            }
+            #afx-tuner-ui.active { display: flex !important; }
+            #ankifx-overlay:not(.afx-agreed-state) ~ #afx-tuner-ui { display: none !important; }
+
+            #afx-tuner-ui input { width: 100%; margin: 12px 0; accent-color: var(--afx-accent); }
+            #afx-tuner-ui .val { font-weight: bold; color: var(--afx-accent); }
+            #afx-tuner-ui .stat { font-size: 10px; opacity: 0.7; margin-top: 4px; display: block; }
         `;
         document.head.appendChild(style);
+    }
+
+    static initTuner(debug) {
+        if (!debug) return;
+        if (document.getElementById('afx-tuner-ui')) return;
+        
+        const tuner = document.createElement('div');
+        tuner.id = 'afx-tuner-ui';
+        
+        // Only show if debug effect is active
+        const currentEffect = localStorage.getItem('ankifx_preferred_effect') || 'geometry';
+        if (currentEffect === 'debug') tuner.classList.add('active');
+
+        const savedOffset = localStorage.getItem('ankifx_tuner_offset') || 0;
+        
+        tuner.innerHTML = `
+            <div style="font-weight: bold; color: #ff00ff; margin-bottom: 5px;">VIEWPORT TUNER</div>
+            <input type="range" id="afx-tuner-range" min="-100" max="300" value="${savedOffset}">
+            <div style="margin: 5px 0 10px;">OFFSET: <span id="afx-tuner-offset-val" class="val">0</span>px</div>
+            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 15px; line-height: 1.4;">
+                IO-HEADER: <span id="afx-tuner-header-val">0</span>px<br>
+                TOTAL ADJ: <span id="afx-tuner-total-val" class="val">0</span>px
+            </div>
+            <button id="afx-debug-clear-storage" style="display: block; width: 100%; background: #441111; color: #ff5555; border: 1px solid #ff5555; font-family: 'Courier New', monospace; padding: 8px; cursor: pointer; border-radius: 8px; font-size: 11px; font-weight: bold; box-sizing: border-box; transition: 0.2s;">CLEAR LOCALSTORAGE</button>
+        `;
+        document.documentElement.appendChild(tuner);
+
+        const slider = document.getElementById('afx-tuner-range');
+        slider.oninput = () => {
+            localStorage.setItem('ankifx_tuner_offset', slider.value);
+            this.updateTuner();
+        };
+
+        const clearBtn = document.getElementById('afx-debug-clear-storage');
+        if (clearBtn) {
+            clearBtn.onclick = () => {
+                if (confirm('Clear ALL AnkiFX local storage?')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            };
+        }
+
+        // Initial update
+        setTimeout(() => this.updateTuner(), 500);
+    }
+
+    static updateTuner() {
+        const slider = document.getElementById('afx-tuner-range');
+        const offsetVal = document.getElementById('afx-tuner-offset-val');
+        const headerVal = document.getElementById('afx-tuner-header-val');
+        const totalVal = document.getElementById('afx-tuner-total-val');
+        
+        if (!slider) return;
+
+        const offset = parseInt(slider.value);
+        offsetVal.innerText = offset >= 0 ? `+${offset}` : offset;
+
+        const style = getComputedStyle(document.documentElement);
+        const header = parseInt(style.getPropertyValue('--io-header')) || 0;
+        headerVal.innerText = header;
+
+        const total = offset + header;
+        totalVal.innerText = total;
+
+        document.documentElement.style.setProperty('--tuner-height', `calc(100dvh + ${total}px)`);
+
+        // Re-trigger resize on effects
+        Object.values(EFFECTS).forEach(eff => {
+            if (eff.resize) eff.resize();
+        });
     }
 
     static injectUI(config, options, isMobile, debug) {
@@ -290,8 +397,8 @@ export class AnkiFX {
             }
         }
 
-        const savedEffect = localStorage.getItem('ankifx_preferred_effect');
-        const activeEffect = savedEffect || config.defaultEffect || 'geometry';
+        // ALWAYS start with the configured effect for new cards/sessions
+        const activeEffect = config.defaultEffect || 'geometry';
 
         const marqueeEnabled = localStorage.getItem('ankifx_marquee_enabled') !== 'false';
         const marqueeStatusLabel = marqueeEnabled ? '📜 TEXT: ON' : '📜 TEXT: OFF';
@@ -321,11 +428,31 @@ export class AnkiFX {
                 </option>
             `).join('');
 
+        const juliaPresets = EFFECTS['julia']?.presets || [];
+        const juliaOptions = juliaPresets.map((p, i) => `
+            <option value="${i}">[ Preset: ${p.name} ]</option>
+        `).join('');
+
+        let juliaSelectorHtml = `
+            <div id="afx-julia-selector-container" class="afx-control-row afx-effect-selector-container" style="padding: 0; display: ${activeEffect === 'julia' ? 'flex' : 'none'};">
+                <select id="afx-julia-selector" class="afx-sub-picker">
+                    ${juliaOptions}
+                </select>
+            </div>
+        `;
+
         let effectSelectorHtml = `
             <div id="afx-effect-selector-container" class="afx-control-row afx-effect-selector-container" style="padding: 0;">
                 <select id="afx-effect-selector">
                     ${effectOptions}
                 </select>
+            </div>
+        `;
+
+        let pickerStackHtml = `
+            <div id="afx-controls-stack-right" class="afx-controls-stack">
+                ${juliaSelectorHtml}
+                ${effectSelectorHtml}
             </div>
         `;
 
@@ -340,12 +467,17 @@ export class AnkiFX {
                     <ul>${sourcesHtml}</ul>
                 </div>
                 <div class="afx-action-row">
-                    ${dualControlHtml}
                     <button id="afx-consent-btn" class="afx-btn" disabled>I AGREE</button>
-                    ${effectSelectorHtml}
                 </div>
             </div>
         `;
+
+        // Inject corner controls (Toggles & Picker) directly into overlay
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = dualControlHtml + pickerStackHtml;
+        while (tempContainer.firstChild) {
+            overlay.appendChild(tempContainer.firstChild);
+        }
 
         const background = document.createElement('div');
         background.id = 'ankifx-background';
@@ -358,25 +490,14 @@ export class AnkiFX {
         btnBack.id = 'afx-btn-back';
         btnBack.className = 'afx-playback-btn';
         btnBack.textContent = '⏪';
+
         const btnSkip = document.createElement('button');
         btnSkip.id = 'afx-btn-skip';
         btnSkip.className = 'afx-playback-btn';
         btnSkip.textContent = '⏭\uFE0F';
 
-        if (isSmallScreen) {
-            Object.assign(btnBack.style, { position: 'fixed', top: '10px', left: '10px', zIndex: '10000',
-                width: '44px', height: '44px', background: 'rgba(0,0,0,0.5)', fontSize: '1.2rem',
-                border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(8px)' });
-            Object.assign(btnSkip.style, { position: 'fixed', top: '10px', right: '10px', zIndex: '10000',
-                width: '44px', height: '44px', background: 'rgba(0,0,0,0.5)', fontSize: '1.2rem',
-                border: '1px solid rgba(255,255,255,0.4)', backdropFilter: 'blur(8px)' });
-            overlay.appendChild(btnBack);
-            overlay.appendChild(btnSkip);
-        } else {
-            const actionRow = overlay.querySelector('.afx-action-row');
-            actionRow.prepend(btnBack);
-            actionRow.append(btnSkip);
-        }
+        overlay.appendChild(btnBack);
+        overlay.appendChild(btnSkip);
 
         // Logic Bindings
         const btn = document.getElementById('afx-consent-btn');
@@ -424,6 +545,11 @@ export class AnkiFX {
         if (audioToggle) {
             const status = document.getElementById('afx-bgm-status');
             
+            // Sync initial state
+            if (audioToggle.checked) {
+                overlay.classList.add('afx-music-playing');
+            }
+
             AnkiFX.jukebox = new Jukebox({
                 onTrackChange: (track) => {
                     const str = `NOW PLAYING: ${track.artist} - ${track.title} - ${track.trackTitle}`;
@@ -440,6 +566,7 @@ export class AnkiFX {
                 const turnOn = e.target.checked;
                 if (turnOn) {
                     overlay.classList.add('afx-bgm-active');
+                    overlay.classList.add('afx-music-playing');
                     status.innerHTML = '🔊<span class="desktop-only"> BGM: ON</span>';
                     status.style.color = "#ff6b6b";
 
@@ -459,6 +586,7 @@ export class AnkiFX {
                     AnkiFX.jukebox.playNext(targetTrack);
                 } else {
                     overlay.classList.remove('afx-bgm-active');
+                    overlay.classList.remove('afx-music-playing');
                     status.innerHTML = '🔇<span class="desktop-only"> BGM: OFF</span>';
                     status.style.color = "#fff";
                     AnkiFX.jukebox.stop();
@@ -488,6 +616,9 @@ export class AnkiFX {
 
         // Effect Selector Binding
         const effectSelector = document.getElementById('afx-effect-selector');
+        const juliaSelectorContainer = document.getElementById('afx-julia-selector-container');
+        const juliaSelector = document.getElementById('afx-julia-selector');
+
         if (effectSelector) {
             effectSelector.addEventListener('change', (e) => {
                 const newEffect = e.target.value;
@@ -498,10 +629,19 @@ export class AnkiFX {
                 canvases.forEach(c => c.remove());
 
                 config.defaultEffect = newEffect;
+                const tuner = document.getElementById('afx-tuner-ui');
+
+                // Toggle sub-pickers
+                if (juliaSelectorContainer) {
+                    juliaSelectorContainer.style.display = newEffect === 'julia' ? 'flex' : 'none';
+                }
+
                 if (newEffect === 'debug') {
                     overlay.classList.add('afx-debug-active');
+                    if (tuner) tuner.classList.add('active');
                 } else {
                     overlay.classList.remove('afx-debug-active');
+                    if (tuner) tuner.classList.remove('active');
                 }
                 AnkiFX.startEffect(config, background, options.marqueePosition);
 
@@ -530,12 +670,30 @@ export class AnkiFX {
             });
         }
 
+        // Julia Sub-Picker Binding
+        if (juliaSelector) {
+            juliaSelector.addEventListener('change', (e) => {
+                const presetIndex = parseInt(e.target.value);
+                const preset = EFFECTS['julia'].presets[presetIndex];
+                if (preset) {
+                    // Update current config with preset coordinates
+                    Object.assign(config, preset);
+                    
+                    // Restart Julia effect
+                    EFFECTS['julia'].stop();
+                    const canvases = document.querySelectorAll('#ankifx-background canvas, #ankifx-overlay canvas');
+                    canvases.forEach(c => c.remove());
+                    AnkiFX.startEffect(config, background, options.marqueePosition);
+                }
+            });
+        }
+
         return { overlay, background };
     }
 
     static startEffect(config, container, position) {
-        const savedEffect = localStorage.getItem('ankifx_preferred_effect');
-        const activeEffect = savedEffect || config.defaultEffect || 'geometry';
+        // Force configured effect on initial start
+        const activeEffect = config.defaultEffect || 'geometry';
 
         if (activeEffect === 'debug') {
             container.classList.add('afx-debug-active');

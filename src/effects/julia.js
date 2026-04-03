@@ -11,12 +11,12 @@ export const effect = {
     stop: stopJulia,
     preferredTrack: { title: "Acoustica Power Bundle 4", trackTitle: "AiR" },
     presets: [
-        { name: 'Rabbit Core', cRe: -0.123, cIm: 0.745, zoomDepth: 5.0, targetX: -0.122, targetY: 0.744 },
-        { name: 'Seahorse Spiral', cRe: -0.74543, cIm: 0.11301, zoomDepth: 12.0, targetX: -0.5299, targetY: 0.0739 },
+        { name: 'Black Hole', cRe: -0.8, cIm: 0.156, zoomDepth: 13, targetX: -0.531184, targetY: 0.078512 },
         { name: 'Electric Lightning', cRe: 0.285, cIm: 0.013, zoomDepth: 6.0, targetX: -0.11, targetY: 0.65 },
+        { name: 'Golden Dragon', cRe: -0.4, cIm: 0.6, zoomDepth: 18.0, targetX: 0.0, targetY: 0.0 },
         { name: 'Filigree', cRe: -0.70176, cIm: -0.3842, zoomDepth: 11.5, targetX: -0.08, targetY: -0.68 },
         { name: 'Fractal Storm', cRe: -0.7269, cIm: 0.1889, zoomDepth: 10.5, targetX: -0.22, targetY: 0.56 },
-        { name: 'Black Hole', cRe: -0.8, cIm: 0.156, zoomDepth: 13, targetX: -0.531184, targetY: 0.078512 }
+        { name: 'Seahorse Spiral', cRe: -0.74543, cIm: 0.11301, zoomDepth: 12.0, targetX: -0.5299, targetY: 0.0739 },
     ]
 };
 
@@ -148,8 +148,9 @@ export function runJulia(container, marqueeText, position = 'bottom', config = {
     // 8. Viewport & Resize Management (with High-DPI support)
     let w, h;
     function resize() {
-        w = container.clientWidth;
-        h = container.clientHeight;
+        const rect = container.getBoundingClientRect();
+        w = rect.width;
+        h = rect.height;
         const dpr = window.devicePixelRatio || 1;
         
         // Scale physical canvas pixels for Retina/High-DPI
