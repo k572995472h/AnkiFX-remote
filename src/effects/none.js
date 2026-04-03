@@ -10,84 +10,25 @@ export const effect = {
 };
 
 export function runNone(container, marqueeText, position = 'bottom') {
-    // 1. Force transparency to reveal Anki card background
-    document.documentElement.style.setProperty('--afx-body-bg', 'transparent');
-    document.documentElement.style.setProperty('--afx-none-bg', 'transparent');
+    // 1. Detect Anki Theme (Night Mode)
+    const isNightMode = document.body.classList.contains('nightMode') || 
+                        document.body.classList.contains('night_mode') ||
+                        window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    const scanForWhiteBackgrounds = () => {
-        console.log("🔍 [AnkiFX Debug] Starting Deep DOM Scan (including Shadow DOM)...");
-        
-        const structural = ['html', 'body', '.card', '.iphone', '.mobile', '#qa', '#content', '#container', '#outer'];
-        structural.forEach(sel => {
-            const el = document.querySelector(sel);
-            if (el) {
-                const style = window.getComputedStyle(el);
-                console.log(`[Structural] ${sel}: bg='${style.backgroundColor}', zIndex='${style.zIndex}'`);
-            }
-        });
-
-        const results = [];
-        const scan = (root) => {
-            const elements = root.querySelectorAll('*');
-            elements.forEach(el => {
-                if (el.closest && el.closest('.eruda-container')) return;
-                
-                const style = window.getComputedStyle(el);
-                const rect = el.getBoundingClientRect();
-                
-                // Light color check
-                const bg = style.backgroundColor;
-                const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-                if (match && parseInt(match[1]) > 200 && parseInt(match[2]) > 200 && parseInt(match[3]) > 200) {
-                    results.push({ tag: el.tagName, id: el.id, bg: bg, el: el });
-                }
-
-                // Full size check
-                if (rect.width > window.innerWidth * 0.9 && rect.height > window.innerHeight * 0.9) {
-                    console.log(`[FullSize] ${el.tagName}${el.id ? '#' + el.id : ''}: bg='${style.backgroundColor}', zIndex='${style.zIndex}'`);
-                }
-
-                if (el.shadowRoot) scan(el.shadowRoot);
-            });
-        };
-
-        scan(document);
-        console.warn(`⚠️ [AnkiFX Debug] Found ${results.length} light elements.`, results);
-        
-        // --- THE COLOR TEST ---
-        console.log("🎨 [AnkiFX Debug] Starting Color Test in 2 seconds...");
-        setTimeout(() => {
-            console.log("🎨 [AnkiFX Debug] Setting background to RED to check visibility...");
-            document.documentElement.style.setProperty('--afx-body-bg', 'red', 'important');
-        }, 2000);
-        setTimeout(() => {
-            console.log("🎨 [AnkiFX Debug] Restoring TRANSPARENT...");
-            document.documentElement.style.setProperty('--afx-body-bg', 'transparent', 'important');
-        }, 4000);
-    };
-
-    // 2. Eruda Integration
-    if (!window.eruda) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-        script.onload = () => {
-            if (window.eruda) {
-                window.eruda.init();
-                window.eruda.position({ x: 20, y: 20 });
-                setTimeout(scanForWhiteBackgrounds, 1000);
-            }
-        };
-        document.head.appendChild(script);
+    // 2. Apply theme-specific colors
+    if (isNightMode) {
+        // Dark Mode: Matches Anki's standard dark canvas
+        document.documentElement.style.setProperty('--afx-body-bg', '#2c2c2c', 'important');
+        document.documentElement.style.setProperty('--afx-body-color', '#ffffff', 'important');
     } else {
-        try { 
-            window.eruda.init(); 
-            window.eruda.position({ x: 20, y: 20 });
-            setTimeout(scanForWhiteBackgrounds, 1000);
-        } catch(e) {}
+        // Light Mode: Matches Anki's standard light canvas
+        document.documentElement.style.setProperty('--afx-body-bg', '#f5f5f5', 'important');
+        document.documentElement.style.setProperty('--afx-body-color', '#000000', 'important');
     }
 
     // 3. Create a clean transparent canvas for the marquee
     const canvas = document.createElement('canvas');
+    canvas.id = 'afx-none-canvas';
     canvas.style.position = 'absolute';
     canvas.style.top = '0';
     canvas.style.left = '0';
@@ -109,9 +50,10 @@ export function runNone(container, marqueeText, position = 'bottom') {
     resize();
 
     // 4. Initialize Marquee
+    // Use a shadow to ensure visibility on both light and dark backgrounds
     const marquee = new Marquee(marqueeText, position, {
-        color: '#ffffff',
-        shadowColor: 'rgba(0,0,0,0.8)',
+        color: isNightMode ? '#ffffff' : '#000000',
+        shadowColor: isNightMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
         shadowBlur: 5
     });
 
@@ -122,7 +64,6 @@ export function runNone(container, marqueeText, position = 'bottom') {
     }
     animationId = requestAnimationFrame(render);
 
-    // Return the marquee instance so the engine can control its enabled state
     return marquee;
 }
 
@@ -131,11 +72,11 @@ export function stopNone() {
         cancelAnimationFrame(animationId);
         animationId = null;
     }
-    // Restore defaults when switching away
+    // Restore defaults when switching back to animated effects
     document.documentElement.style.removeProperty('--afx-body-bg');
-    document.documentElement.style.removeProperty('--afx-none-bg');
+    document.documentElement.style.removeProperty('--afx-body-color');
     
-    // Hide Eruda if it exists, to keep the UI clean when switching back to animations
+    // Hide Eruda if it was loaded
     if (window.eruda) {
         try { window.eruda.hide(); } catch(e) {}
     }

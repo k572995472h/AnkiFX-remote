@@ -107,6 +107,7 @@ export class AnkiFX {
                 --afx-picker-font-size: 13px;
                 --afx-btn-font-size: 15px;
                 --afx-body-bg: #000;
+                --afx-body-color: #fff;
                 --afx-none-bg: var(--afx-bg-color, black);
             }
 
@@ -117,6 +118,7 @@ export class AnkiFX {
                 min-height: var(--tuner-height) !important;
                 overflow: hidden !important;
                 background-color: var(--afx-body-bg, #000) !important;
+                color: var(--afx-body-color, #fff) !important;
                 position: relative !important;
             }
 
@@ -128,6 +130,7 @@ export class AnkiFX {
                 background: transparent !important;
                 box-shadow: none !important;
                 position: relative !important;
+                color: var(--afx-body-color, #fff) !important;
             }
 
             #qa {
