@@ -82,6 +82,7 @@ export class AnkiFX {
              // Subtle delay so Anki/iOS can settle their layout
              setTimeout(() => this.updateTuner(), 50);
         });
+        config.debug = debug;
         this.startEffect(config, background, options.marqueePosition, activeEffect);
         
         // Initialize Marquee state from persistence
@@ -101,6 +102,10 @@ export class AnkiFX {
                 --afx-text-color: #f0f0f0;
                 --afx-accent: #ff00ff;
                 --tuner-height: 100dvh;
+                --afx-terms-font-size: 1.15rem;
+                --afx-dialog-h3-size: 1.4rem;
+                --afx-picker-font-size: 13px;
+                --afx-btn-font-size: 15px;
             }
 
             html, body {
@@ -258,20 +263,21 @@ export class AnkiFX {
                 font-family: 'Courier New', monospace; background: rgba(0,0,0,0.4);
                 padding: 1.2rem; border-radius: 16px; margin-bottom: 1rem;
                 width: 100%; max-height: 400px; overflow-y: auto;
-                line-height: 1.7; border: 1px solid rgba(255,255,255,0.05);
-                font-size: 1.1rem; color: #ccc;
+                line-height: 1.8; border: 1px solid rgba(255,255,255,0.05);
+                font-size: var(--afx-terms-font-size); color: #ccc;
             }
+            .afx-terms h3 { font-size: var(--afx-dialog-h3-size); margin-bottom: 15px; }
 
-            .afx-btn, .afx-playback-btn, #afx-effect-selector, .afx-control-row {
+            .afx-btn, .afx-playback-btn, #afx-effect-selector, .afx-sub-picker, .afx-control-row {
                 font-family: 'Courier New', Courier, monospace !important;
-                font-size: 13px !important;
+                font-size: var(--afx-picker-font-size) !important;
                 font-weight: bold !important;
             }
 
             .afx-btn {
                 padding: 10px 30px; border-radius: 12px; border: none; cursor: pointer;
                 transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
-                font-size: 15px !important; /* Disclaimer button stays slightly bigger */
+                font-size: var(--afx-btn-font-size) !important; /* Disclaimer button stays slightly bigger */
             }
             .afx-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
             .afx-btn:not(:disabled) { background: #28a745; color: white; box-shadow: 0 4px 15px rgba(40,167,69,0.3); }
@@ -457,7 +463,7 @@ export class AnkiFX {
         const textPrefix = isSmallScreen ? '📜 ' : '📜 TEXT: ';
         const bgmPrefix = isSmallScreen ? '' : ' BGM: '; 
         
-        const marqueeStatusLabel = marqueeEnabled ? `${textPrefix}ON` : `${textPrefix}OFF`;
+        const marqueeStatusLabel = isSmallScreen ? textPrefix.trim() : (marqueeEnabled ? `${textPrefix}ON` : `${textPrefix}OFF`);
         const bgmStatusOff = isSmallScreen ? '🔇' : `🔇${bgmPrefix}OFF`;
         const bgmStatusOn = isSmallScreen ? '🔊' : `🔊${bgmPrefix}ON`;
 
@@ -664,7 +670,7 @@ export class AnkiFX {
                 const isEnabled = e.target.checked;
                 localStorage.setItem('ankifx_marquee_enabled', isEnabled);
                 const textPrefix = isSmallScreen ? '📜 ' : '📜 TEXT: ';
-                textStatus.textContent = isEnabled ? `${textPrefix}ON` : `${textPrefix}OFF`;
+                textStatus.textContent = isSmallScreen ? textPrefix.trim() : (isEnabled ? `${textPrefix}ON` : `${textPrefix}OFF`);
                 if (AnkiFX.activeMarquee) {
                     AnkiFX.activeMarquee.enabled = isEnabled;
                 }

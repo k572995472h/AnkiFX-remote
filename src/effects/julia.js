@@ -3,6 +3,17 @@ import { Marquee } from './marquee.js';
 let animationId = null;
 let activeWrapper = null;
 let currentResizeListener = null;
+let currentMouseListener = null;
+let currentMouseMoveListener = null;
+let mousePos = { x: 0, y: 0 };
+let juliaState = {
+    cRe: -0.800,
+    cIm: 0.156,
+    zoomDepth: 10.0,
+    targetX: -0.5273,
+    targetY: 0.0757,
+    speed: parseFloat(localStorage.getItem('ankifx_julia_speed')) || 0.025
+};
 
 export const effect = {
     id: 'julia',
@@ -11,7 +22,7 @@ export const effect = {
     stop: stopJulia,
     preferredTrack: { title: "Acoustica Power Bundle 4", trackTitle: "AiR" },
     presets: [
-        { name: 'Black Hole', cRe: -0.8, cIm: 0.156, zoomDepth: 13, targetX: -0.531184, targetY: 0.078512 },
+        { name: 'Black Hole', cRe: -0.8, cIm: 0.156, zoomDepth: 10, targetX: -0.527503, targetY: 0.075912 },
         { name: 'Electric Lightning', cRe: 0.285, cIm: 0.013, zoomDepth: 6.0, targetX: -0.11, targetY: 0.65 },
         { name: 'Golden Dragon', cRe: -0.4, cIm: 0.6, zoomDepth: 18.0, targetX: 0.0, targetY: 0.0 },
         { name: 'Filigree', cRe: -0.70176, cIm: -0.3842, zoomDepth: 11.5, targetX: -0.08, targetY: -0.68 },
@@ -54,6 +65,7 @@ export function runJulia(container, marqueeText, position = 'bottom', config = {
         precision highp float;
         uniform vec2 u_resolution;
         uniform float u_time;
+        uniform float u_speed;
         uniform vec2 u_c; 
         uniform float u_zoomDepth;
         uniform vec2 u_target;
@@ -67,18 +79,19 @@ export function runJulia(container, marqueeText, position = 'bottom', config = {
             return a + b * cos(6.28318 * (c * t + d));
         }
 
-        // Cubic Easing for cinematic approach
-        float easeOutCubic(float x) {
-            return 1.0 - pow(1.0 - x, 3.0);
+        // Symmetric Cubic Easing for infinitely smooth oscillation
+        float easeInOutCubic(float x) {
+            return x < 0.5 ? 4.0 * x * x * x : 1.0 - pow(-2.0 * x + 2.0, 3.0) / 2.0;
         }
 
         void main() {
             vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
             
             // 3. Cinematic Zoom & Coordinate Logic
-            // Map time to a 0.0 -> 1.0 progress limit
-            float progress = clamp(u_time * 0.025 / max(u_zoomDepth, 1.0), 0.0, 1.0);
-            float easedProgress = easeOutCubic(progress);
+            // Cyclic dive: zoom in to max, then zoom back out
+            float cycle = mod(u_time * u_speed / max(u_zoomDepth, 1.0), 2.0);
+            float progress = cycle > 1.0 ? 2.0 - cycle : cycle;
+            float easedProgress = easeInOutCubic(progress);
             
             float zoom = exp(easedProgress * u_zoomDepth);
             float scale = 2.2 / zoom;
@@ -140,6 +153,7 @@ export function runJulia(container, marqueeText, position = 'bottom', config = {
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
     const timeLoc = gl.getUniformLocation(program, "u_time");
+    const speedLoc = gl.getUniformLocation(program, "u_speed");
     const resLoc = gl.getUniformLocation(program, "u_resolution");
     const cLoc = gl.getUniformLocation(program, "u_c");
     const zoomDepthLoc = gl.getUniformLocation(program, "u_zoomDepth");
@@ -169,6 +183,121 @@ export function runJulia(container, marqueeText, position = 'bottom', config = {
     window.addEventListener('resize', resize);
     currentResizeListener = resize;
     resize();
+    
+    // 8.5 Debug Tuning Panel
+    let debugInfoEl = null;
+    let getCoordsAt = null;
+    const tunerRows = [];
+    if (config.debug) {
+        const pickerStack = document.getElementById('afx-controls-stack-right');
+        if (pickerStack) {
+            // Coordinate Info (Mouse Tracker)
+            debugInfoEl = document.createElement('div');
+            debugInfoEl.id = 'afx-julia-debug-info';
+            debugInfoEl.className = 'afx-control-row';
+            debugInfoEl.style.cssText = 'height: 20px !important; margin-bottom: 2px; pointer-events: none; justify-content: flex-end; opacity: 0.8; font-size: 11px !important; color: #ff00ff;';
+            debugInfoEl.textContent = 'HOVER TO SEE TARGET COORDS';
+            pickerStack.prepend(debugInfoEl);
+
+            // Parameter Tuning Panel
+            const createSlider = (label, key, min, max, step, precision = 3) => {
+                const row = document.createElement('div');
+                row.className = 'afx-control-row julia-tuner-row';
+                row.style.cssText = 'height: 24px !important; margin-bottom: 2px; gap: 8px; justify-content: flex-end; font-size: 10px !important; color: #00ffff;';
+                
+                const val = juliaState[key];
+                row.innerHTML = `
+                    <span>${label}:</span>
+                    <input type="range" class="julia-slider" data-key="${key}" min="${min}" max="${max}" step="${step}" value="${val}" style="width: 70px; accent-color: #00ffff; cursor: pointer;">
+                    <input type="number" class="julia-val" data-key="${key}" step="${step}" value="${val.toFixed(precision)}" style="width: 70px; background: rgba(0,0,0,0.4); border: 1px solid #00ffff; color: #00ffff; font-size: 10px !important; padding: 2px 4px; border-radius: 3px; outline: none;">
+                `;
+
+                const slider = row.querySelector('.julia-slider');
+                const numInput = row.querySelector('.julia-val');
+
+                const updateVal = (newVal, skipInput = false) => {
+                    juliaState[key] = parseFloat(newVal);
+                    if (!skipInput) numInput.value = juliaState[key].toFixed(precision);
+                    slider.value = juliaState[key];
+                    if (key === 'speed') localStorage.setItem('ankifx_julia_speed', juliaState[key]);
+                };
+
+                slider.oninput = (e) => updateVal(e.target.value);
+                numInput.oninput = (e) => updateVal(e.target.value, true);
+                
+                return row;
+            };
+
+            // Initialize State from Config
+            juliaState.cRe = config.cRe !== undefined ? config.cRe : -0.8;
+            juliaState.cIm = config.cIm !== undefined ? config.cIm : 0.156;
+            juliaState.zoomDepth = config.zoomDepth !== undefined ? config.zoomDepth : 10.8;
+            juliaState.targetX = config.targetX !== undefined ? config.targetX : -0.5273;
+            juliaState.targetY = config.targetY !== undefined ? config.targetY : 0.0757;
+
+            tunerRows.push(createSlider('C-RE', 'cRe', -1.5, 1.0, 0.001, 6));
+            tunerRows.push(createSlider('C-IM', 'cIm', -1.0, 1.0, 0.001, 6));
+            tunerRows.push(createSlider('ZOOM', 'zoomDepth', 2.0, 25.0, 0.1, 1));
+            tunerRows.push(createSlider('T-X', 'targetX', -2.0, 2.0, 0.0001, 6));
+            tunerRows.push(createSlider('T-Y', 'targetY', -2.0, 2.0, 0.0001, 6));
+            tunerRows.push(createSlider('SPD', 'speed', 0.005, 0.3, 0.005, 3));
+
+            // Prepend so they appear above the effect picker
+            tunerRows.forEach(row => pickerStack.prepend(row));
+        }
+
+        getCoordsAt = (screenX, screenY, currentTime) => {
+            const cycle = (currentTime * juliaState.speed / Math.max(juliaState.zoomDepth, 1.0)) % 2.0;
+            const progress = cycle > 1.0 ? 2.0 - cycle : cycle;
+            const easedProgress = progress < 0.5 ? 4.0 * Math.pow(progress, 3.0) : 1.0 - Math.pow(-2.0 * progress + 2.0, 3.0) / 2.0;
+            const zoom = Math.exp(easedProgress * juliaState.zoomDepth);
+            const scale = 2.2 / zoom;
+            const angle = easedProgress * Math.PI * 0.5;
+            
+            const uvX = (screenX - w / 2) / h;
+            const uvY = (h / 2 - screenY) / h;
+            
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+            
+            const dx = (cosA * uvX + sinA * uvY) * scale;
+            const dy = (-sinA * uvX + cosA * uvY) * scale;
+            
+            return {
+                tx: juliaState.targetX + dx,
+                ty: juliaState.targetY + dy
+            };
+        };
+
+        const handleMouseDown = (e) => {
+            // Filter out clicks on the debug UI elements
+            if (e.target.closest('.afx-controls-stack') || e.target.closest('.afx-dialog') || e.target.closest('.afx-dual-control-stack')) return;
+            
+            const currentTime = (performance.now() * 0.001) - startTime;
+            const { tx, ty } = getCoordsAt(e.clientX, e.clientY, currentTime);
+            
+            // 1. Update module state
+            juliaState.targetX = tx;
+            juliaState.targetY = ty;
+            
+            // 2. Sync Sliders and Value Displays
+            ['targetX', 'targetY'].forEach(key => {
+                const slider = document.querySelector(`.julia-slider[data-key="${key}"]`);
+                const numInput = document.querySelector(`.julia-val[data-key="${key}"]`);
+                if (slider) slider.value = juliaState[key];
+                if (numInput) numInput.value = juliaState[key].toFixed(6);
+            });
+        };
+        window.addEventListener('mousedown', handleMouseDown);
+        currentMouseListener = handleMouseDown;
+
+        const handleMouseMove = (e) => {
+            mousePos.x = e.clientX;
+            mousePos.y = e.clientY;
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        currentMouseMoveListener = handleMouseMove; 
+    }
 
     const marquee = new Marquee(marqueeText, position, {
         color: '#FFF',
@@ -182,15 +311,22 @@ export function runJulia(container, marqueeText, position = 'bottom', config = {
 
         // 9.1 Render Julia Set
         gl.uniform1f(timeLoc, time);
-        gl.uniform2f(cLoc, initialCRe, initialCIm);
-        gl.uniform1f(zoomDepthLoc, zoomDepth);
-        gl.uniform2f(targetLoc, targetX, targetY);
+        gl.uniform1f(speedLoc, juliaState.speed);
+        gl.uniform2f(cLoc, juliaState.cRe, juliaState.cIm);
+        gl.uniform1f(zoomDepthLoc, juliaState.zoomDepth);
+        gl.uniform2f(targetLoc, juliaState.targetX, juliaState.targetY);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         // 9.2 Render Marquee
         ctx.clearRect(0, 0, w, h);
         // We pass logical w, h because we already scaled the 2D context by DPR
         marquee.render(ctx, w, h);
+
+        if (debugInfoEl && getCoordsAt) {
+            const currentTime = (performance.now() * 0.001) - startTime;
+            const { tx, ty } = getCoordsAt(mousePos.x, mousePos.y, currentTime);
+            debugInfoEl.textContent = `TARGET X: ${tx.toFixed(6)}, Y: ${ty.toFixed(6)}`;
+        }
 
         animationId = requestAnimationFrame(render);
     }
@@ -210,6 +346,20 @@ export function stopJulia() {
             window.removeEventListener('resize', currentResizeListener);
             currentResizeListener = null;
         }        
+        if (currentMouseListener) {
+            window.removeEventListener('mousedown', currentMouseListener);
+            currentMouseListener = null;
+        }
+        if (currentMouseMoveListener) {
+            window.removeEventListener('mousemove', currentMouseMoveListener);
+            currentMouseMoveListener = null;
+        }
+
+        const debugInfo = document.getElementById('afx-julia-debug-info');
+        if (debugInfo) debugInfo.remove();
+        
+        document.querySelectorAll('.julia-tuner-row').forEach(row => row.remove());
+
         // Safely force WebGL to drop the context, preventing GPU memory leaks
         const glCanvas = activeWrapper.querySelector('canvas');
         if (glCanvas) {
