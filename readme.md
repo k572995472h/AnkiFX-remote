@@ -82,6 +82,12 @@ Furthermore, real Anki dumps all files into a flat `collection.media` folder. To
 2. **Auto-discovers** every `configs/_afx_*.js` file and copies all of them into `build/`. No manual registration needed — just drop a new config in `configs/` and rebuild.
 3. *Result:* Open `build/deck_description.html` or `build/card_front.html` via Live Server (`http://127.0.0.1:5500`) and test hot-reloaded changes exactly as they will behave in Anki.
 
+### 📜 Local Version Tracking
+This project uses Git for local version control. 
+- Branches follow the `feat/[branch-name]` or `fix/[branch-name]` pattern.
+- The `main` branch represents the stable version.
+- See `.agents/workflows/git-feature-workflow.md` for the automated AI workflow details.
+
 ### Adding a New Course Config
 1. Create `configs/_afx_[subject].js` (copy an existing one as a template).
 2. Set the required fields:
@@ -111,6 +117,7 @@ If you are an AI generating code for this project, you **must** adhere to the fo
 5. **Anki Flat Directory Constraint:** When writing paths for Anki deployment, assume all files (`_ankifx.js`, configs) live in the exact same directory (`collection.media`).
 6. **Config Independence:** The engine (`_ankifx.js`) must never contain hardcoded course names, professor names, or terms. It must always read from the globally attached `window.AnkiFX_Config` object.
 7. **Async race protection:** Any method in `Jukebox` that performs `await` operations must use the `_opId` generation counter pattern to guard against stale async chains from rapid user interactions.
+8. **Git Branching Workflow:** Before starting any new feature or fix, always create a new feature branch (e.g., `feat/marquee-fixes`). Never work directly on `main`. Merge back to `main` only after the task is verified.
 
 ---
 
