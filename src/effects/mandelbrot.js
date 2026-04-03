@@ -21,7 +21,7 @@ export const effect = {
     preferredTrack: { title: "Acoustica Power Bundle 4", trackTitle: "AiR" }
 };
 
-export function runMandelbrot(container, marqueeText, position = 'bottom') {
+export function runMandelbrot(container, marqueeText, position = 'bottom', config = {}) {
     // 1. Dual-Canvas Setup
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none;';
@@ -164,9 +164,8 @@ export function runMandelbrot(container, marqueeText, position = 'bottom') {
     let debugInfoEl = null;
     let getCoordsAt = null;
     const tunerRows = [];
-    const isDebug = document.getElementById('ankifx-overlay')?.classList.contains('afx-debug-active');
     
-    if (isDebug) {
+    if (config.debug) {
         const pickerStack = document.getElementById('afx-controls-stack-right');
         if (pickerStack) {
             // Coordinate Info (Mouse Tracker)
