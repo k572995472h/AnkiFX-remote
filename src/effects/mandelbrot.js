@@ -3,7 +3,15 @@ import { Marquee } from './marquee.js';
 let animationId = null;
 let activeWrapper = null;
 let currentResizeListener = null;
-let currentZoomSpeed = parseFloat(localStorage.getItem('ankifx_mandelbrot_speed')) || 0.025;
+let currentMouseListener = null;
+let currentMouseMoveListener = null;
+let mousePos = { x: 0, y: 0 };
+let mandelbrotState = {
+    targetX: -0.743643887037151,
+    targetY: 0.131825904205330,
+    zoomDepth: 13.0,
+    speed: parseFloat(localStorage.getItem('ankifx_mandelbrot_speed')) || 0.025
+};
 
 export const effect = {
     id: 'mandelbrot',
@@ -42,6 +50,8 @@ export function runMandelbrot(container, marqueeText, position = 'bottom') {
         uniform vec2 u_resolution;
         uniform float u_time;
         uniform float u_speed;
+        uniform float u_zoomDepth;
+        uniform vec2 u_target;
 
         // Majestic Deep-Gold Palette
         vec3 palette(float t) {
@@ -52,24 +62,21 @@ export function runMandelbrot(container, marqueeText, position = 'bottom') {
             return a + b * cos(6.28318 * (c * t + d));
         }
 
-        // Cubic Easing for cinematic approach
-        float easeOutCubic(float x) {
-            return 1.0 - pow(1.0 - x, 3.0);
+        // Symmetric Cubic Easing for infinitely smooth oscillation
+        float easeInOutCubic(float x) {
+            return x < 0.5 ? 4.0 * x * x * x : 1.0 - pow(-2.0 * x + 2.0, 3.0) / 2.0;
         }
 
         void main() {
             vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
-            vec2 target = vec2(-0.743643887037151, 0.131825904205330);
-
             // 3. Cinematic Zoom & Coordinate Logic
             // One-way slow dive that cycles: zoom in to max, then zoom back out
-            float zoomDepth = 13.0; 
-            float cycle = mod(u_time * u_speed / max(zoomDepth, 1.0), 2.0);
+            float cycle = mod(u_time * u_speed / max(u_zoomDepth, 1.0), 2.0);
             float progress = cycle > 1.0 ? 2.0 - cycle : cycle;
-            float easedProgress = easeOutCubic(progress);
+            float easedProgress = easeInOutCubic(progress);
             
-            float zoom = exp(easedProgress * zoomDepth);
-            vec2 c = target + uv * (2.5 / zoom);
+            float zoom = exp(easedProgress * u_zoomDepth);
+            vec2 c = u_target + uv * (2.5 / zoom);
             vec2 z = vec2(0.0);
             float iter = 0.0;
             
@@ -126,6 +133,8 @@ export function runMandelbrot(container, marqueeText, position = 'bottom') {
 
     const timeLoc = gl.getUniformLocation(program, "u_time");
     const speedLoc = gl.getUniformLocation(program, "u_speed");
+    const zoomDepthLoc = gl.getUniformLocation(program, "u_zoomDepth");
+    const targetLoc = gl.getUniformLocation(program, "u_target");
     const resLoc = gl.getUniformLocation(program, "u_resolution");
 
     // 3. Viewport & Resize Management (High-DPI Support)
@@ -151,31 +160,100 @@ export function runMandelbrot(container, marqueeText, position = 'bottom') {
     currentResizeListener = resize;
     resize();
 
-    // 3.5 Debug Speed Slider
-    let speedSliderContainer = null;
+    // 3.5 Debug Tuning Panel
+    let debugInfoEl = null;
+    let getCoordsAt = null;
+    const tunerRows = [];
     const isDebug = document.getElementById('ankifx-overlay')?.classList.contains('afx-debug-active');
     
     if (isDebug) {
         const pickerStack = document.getElementById('afx-controls-stack-right');
         if (pickerStack) {
-            speedSliderContainer = document.createElement('div');
-            speedSliderContainer.className = 'afx-control-row';
-            speedSliderContainer.style.cssText = 'height: 28px !important; margin-bottom: 4px; gap: 8px; justify-content: flex-end; font-size: 11px !important; color: #00ffff;';
-            speedSliderContainer.innerHTML = `
-                <span>ZOOM SPEED:</span>
-                <input type="range" id="afx-mandelbrot-speed-slider" min="0.005" max="0.3" step="0.005" value="${currentZoomSpeed}" style="width: 80px; accent-color: #00ffff; cursor: pointer;">
-                <span id="afx-mandelbrot-speed-val" style="width: 35px;">${currentZoomSpeed.toFixed(3)}</span>
-            `;
-            pickerStack.prepend(speedSliderContainer);
+            // Coordinate Info (Mouse Tracker)
+            debugInfoEl = document.createElement('div');
+            debugInfoEl.id = 'afx-mandelbrot-debug-info';
+            debugInfoEl.className = 'afx-control-row';
+            debugInfoEl.style.cssText = 'height: 20px !important; margin-bottom: 2px; pointer-events: none; justify-content: flex-end; opacity: 0.8; font-size: 11px !important; color: #ff00ff;';
+            debugInfoEl.textContent = 'HOVER TO SEE TARGET COORDS';
+            pickerStack.prepend(debugInfoEl);
 
-            const slider = speedSliderContainer.querySelector('#afx-mandelbrot-speed-slider');
-            const valDisplay = speedSliderContainer.querySelector('#afx-mandelbrot-speed-val');
-            slider.addEventListener('input', (e) => {
-                currentZoomSpeed = parseFloat(e.target.value);
-                valDisplay.textContent = currentZoomSpeed.toFixed(3);
-                localStorage.setItem('ankifx_mandelbrot_speed', currentZoomSpeed);
-            });
+            // Parameter Tuning Panel
+            const createSlider = (label, key, min, max, step, precision = 3) => {
+                const row = document.createElement('div');
+                row.className = 'afx-control-row mandelbrot-tuner-row';
+                row.style.cssText = 'height: 24px !important; margin-bottom: 2px; gap: 8px; justify-content: flex-end; font-size: 10px !important; color: #00ffff;';
+                
+                const val = mandelbrotState[key];
+                row.innerHTML = `
+                    <span>${label}:</span>
+                    <input type="range" class="mandelbrot-slider" data-key="${key}" min="${min}" max="${max}" step="${step}" value="${val}" style="width: 70px; accent-color: #00ffff; cursor: pointer;">
+                    <input type="number" class="mandelbrot-val" data-key="${key}" step="${step}" value="${val.toFixed(precision)}" style="width: 70px; background: rgba(0,0,0,0.4); border: 1px solid #00ffff; color: #00ffff; font-size: 10px !important; padding: 2px 4px; border-radius: 3px; outline: none;">
+                `;
+
+                const slider = row.querySelector('.mandelbrot-slider');
+                const numInput = row.querySelector('.mandelbrot-val');
+
+                const updateVal = (newVal, skipInput = false) => {
+                    mandelbrotState[key] = parseFloat(newVal);
+                    if (!skipInput) numInput.value = mandelbrotState[key].toFixed(precision);
+                    slider.value = mandelbrotState[key];
+                    if (key === 'speed') localStorage.setItem('ankifx_mandelbrot_speed', mandelbrotState[key]);
+                };
+
+                slider.oninput = (e) => updateVal(e.target.value);
+                numInput.oninput = (e) => updateVal(e.target.value, true);
+                
+                return row;
+            };
+
+            tunerRows.push(createSlider('ZOOM', 'zoomDepth', 2.0, 25.0, 0.1, 1));
+            tunerRows.push(createSlider('T-X', 'targetX', -2.5, 1.0, 0.0001, 6));
+            tunerRows.push(createSlider('T-Y', 'targetY', -1.5, 1.5, 0.0001, 6));
+            tunerRows.push(createSlider('SPD', 'speed', 0.005, 0.3, 0.005, 3));
+
+            tunerRows.forEach(row => pickerStack.prepend(row));
         }
+
+        getCoordsAt = (screenX, screenY, currentTime) => {
+            const cycle = (currentTime * mandelbrotState.speed / Math.max(mandelbrotState.zoomDepth, 1.0)) % 2.0;
+            const progress = cycle > 1.0 ? 2.0 - cycle : cycle;
+            const easedProgress = progress < 0.5 ? 4.0 * Math.pow(progress, 3.0) : 1.0 - Math.pow(-2.0 * progress + 2.0, 3.0) / 2.0;
+            const zoom = Math.exp(easedProgress * mandelbrotState.zoomDepth);
+            
+            const uvX = (screenX - w / 2) / h;
+            const uvY = (h / 2 - screenY) / h;
+            
+            return {
+                tx: mandelbrotState.targetX + uvX * (2.5 / zoom),
+                ty: mandelbrotState.targetY + uvY * (2.5 / zoom)
+            };
+        };
+
+        const handleMouseDown = (e) => {
+            if (e.target.closest('.afx-controls-stack') || e.target.closest('.afx-dialog') || e.target.closest('.afx-dual-control-stack')) return;
+            
+            const currentTime = (performance.now() * 0.001) - startTime;
+            const { tx, ty } = getCoordsAt(e.clientX, e.clientY, currentTime);
+            
+            mandelbrotState.targetX = tx;
+            mandelbrotState.targetY = ty;
+            
+            ['targetX', 'targetY'].forEach(key => {
+                const slider = document.querySelector(`.mandelbrot-slider[data-key="${key}"]`);
+                const numInput = document.querySelector(`.mandelbrot-val[data-key="${key}"]`);
+                if (slider) slider.value = mandelbrotState[key];
+                if (numInput) numInput.value = mandelbrotState[key].toFixed(6);
+            });
+        };
+        window.addEventListener('mousedown', handleMouseDown);
+        currentMouseListener = handleMouseDown;
+
+        const handleMouseMove = (e) => {
+            mousePos.x = e.clientX;
+            mousePos.y = e.clientY;
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        currentMouseMoveListener = handleMouseMove; 
     }
 
     const marquee = new Marquee(marqueeText, position, {
@@ -191,12 +269,20 @@ export function runMandelbrot(container, marqueeText, position = 'bottom') {
 
         // Render Fractal (GPU)
         gl.uniform1f(timeLoc, time);
-        gl.uniform1f(speedLoc, currentZoomSpeed);
+        gl.uniform1f(speedLoc, mandelbrotState.speed);
+        gl.uniform1f(zoomDepthLoc, mandelbrotState.zoomDepth);
+        gl.uniform2f(targetLoc, mandelbrotState.targetX, mandelbrotState.targetY);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         // Render Marquee (CPU)
         ctx.clearRect(0, 0, w, h);
         marquee.render(ctx, w, h);
+        
+        if (debugInfoEl && getCoordsAt) {
+            const currentTime = (performance.now() * 0.001) - startTime;
+            const { tx, ty } = getCoordsAt(mousePos.x, mousePos.y, currentTime);
+            debugInfoEl.textContent = `TARGET X: ${tx.toFixed(6)}, Y: ${ty.toFixed(6)}`;
+        }
 
         animationId = requestAnimationFrame(render);
     }
@@ -215,9 +301,18 @@ export function stopMandelbrot() {
             window.removeEventListener('resize', currentResizeListener);
             currentResizeListener = null;
         }        
+        if (currentMouseListener) {
+            window.removeEventListener('mousedown', currentMouseListener);
+            currentMouseListener = null;
+        }
+        if (currentMouseMoveListener) {
+            window.removeEventListener('mousemove', currentMouseMoveListener);
+            currentMouseMoveListener = null;
+        }
         
-        const speedSlider = document.getElementById('afx-mandelbrot-speed-slider')?.parentElement;
-        if (speedSlider) speedSlider.remove();
+        document.querySelectorAll('.mandelbrot-tuner-row').forEach(row => row.remove());
+        const debugInfo = document.getElementById('afx-mandelbrot-debug-info');
+        if (debugInfo) debugInfo.remove();
 
         // Safely force WebGL to drop the context, preventing GPU memory leaks
         const glCanvas = activeWrapper.querySelector('canvas');
