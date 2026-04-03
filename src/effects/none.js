@@ -15,62 +15,55 @@ export function runNone(container, marqueeText, position = 'bottom') {
     document.documentElement.style.setProperty('--afx-none-bg', 'transparent');
 
     const scanForWhiteBackgrounds = () => {
-        console.log("🔍 [AnkiFX Debug] Detailed DOM Scan...");
+        console.log("🔍 [AnkiFX Debug] Starting Deep DOM Scan (including Shadow DOM)...");
         
         const structural = ['html', 'body', '.card', '.iphone', '.mobile', '#qa', '#content', '#container', '#outer'];
         structural.forEach(sel => {
             const el = document.querySelector(sel);
             if (el) {
                 const style = window.getComputedStyle(el);
-                console.log(`[Structural] ${sel}: bg='${style.backgroundColor}', img='${style.backgroundImage}', opacity='${style.opacity}', zIndex='${style.zIndex}'`);
+                console.log(`[Structural] ${sel}: bg='${style.backgroundColor}', zIndex='${style.zIndex}'`);
             }
         });
 
         const results = [];
-        const all = document.querySelectorAll('*');
-        
-        const isLight = (color) => {
-            if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return false;
-            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-            if (match) {
-                const r = parseInt(match[1]);
-                const g = parseInt(match[2]);
-                const b = parseInt(match[3]);
-                return r > 200 && g > 200 && b > 200; // Check for any "light" color (not just pure white)
-            }
-            return false;
+        const scan = (root) => {
+            const elements = root.querySelectorAll('*');
+            elements.forEach(el => {
+                if (el.closest && el.closest('.eruda-container')) return;
+                
+                const style = window.getComputedStyle(el);
+                const rect = el.getBoundingClientRect();
+                
+                // Light color check
+                const bg = style.backgroundColor;
+                const match = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (match && parseInt(match[1]) > 200 && parseInt(match[2]) > 200 && parseInt(match[3]) > 200) {
+                    results.push({ tag: el.tagName, id: el.id, bg: bg, el: el });
+                }
+
+                // Full size check
+                if (rect.width > window.innerWidth * 0.9 && rect.height > window.innerHeight * 0.9) {
+                    console.log(`[FullSize] ${el.tagName}${el.id ? '#' + el.id : ''}: bg='${style.backgroundColor}', zIndex='${style.zIndex}'`);
+                }
+
+                if (el.shadowRoot) scan(el.shadowRoot);
+            });
         };
 
-        all.forEach(el => {
-            if (el.closest('.eruda-container')) return;
-            const style = window.getComputedStyle(el);
-            const rect = el.getBoundingClientRect();
-            
-            // Check for light colors
-            if (isLight(style.backgroundColor) || isLight(style.backgroundImage)) {
-                results.push({
-                    tag: el.tagName,
-                    id: el.id,
-                    classes: el.className,
-                    bg: style.backgroundColor,
-                    img: style.backgroundImage,
-                    element: el
-                });
-            }
-            
-            // Check for full-screen elements
-            if (rect.width > window.innerWidth * 0.9 && rect.height > window.innerHeight * 0.9) {
-                console.log(`[FullSize] ${el.tagName}${el.id ? '#' + el.id : ''}.${el.className}: bg='${style.backgroundColor}', zIndex='${style.zIndex}', display='${style.display}'`);
-            }
-        });
+        scan(document);
+        console.warn(`⚠️ [AnkiFX Debug] Found ${results.length} light elements.`, results);
         
-        if (results.length > 0) {
-            console.warn(`⚠️ [AnkiFX Debug] Found ${results.length} light-colored elements:`);
-            results.forEach(r => {
-                const selector = `${r.tag}${r.id ? '#' + r.id : ''}${r.classes ? '.' + r.classes.toString().split(' ').join('.') : ''}`;
-                console.log(`- %c${selector}`, 'color: #ff00ff; font-weight: bold;', r.bg, r.element);
-            });
-        }
+        // --- THE COLOR TEST ---
+        console.log("🎨 [AnkiFX Debug] Starting Color Test in 2 seconds...");
+        setTimeout(() => {
+            console.log("🎨 [AnkiFX Debug] Setting background to RED to check visibility...");
+            document.documentElement.style.setProperty('--afx-body-bg', 'red', 'important');
+        }, 2000);
+        setTimeout(() => {
+            console.log("🎨 [AnkiFX Debug] Restoring TRANSPARENT...");
+            document.documentElement.style.setProperty('--afx-body-bg', 'transparent', 'important');
+        }, 4000);
     };
 
     // 2. Eruda Integration
