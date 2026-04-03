@@ -369,21 +369,10 @@ export class AnkiFX {
             }
         }, 50);
 
-        // Slow down monitoring after 5 seconds to save battery
+        // Stop monitoring after 2 seconds (enough for AnkiMobile to settle)
         setTimeout(() => {
             clearInterval(monitorIv);
-            setInterval(() => {
-                const currentStyle = getComputedStyle(document.documentElement);
-                const currentHeader = parseInt(currentStyle.getPropertyValue('--io-header')) || 0;
-                if (currentHeader !== lastHeader) {
-                    lastHeader = currentHeader;
-                    if (this.tunerAutoUpdate) {
-                        slider.value = -currentHeader;
-                    }
-                    this.updateTuner();
-                }
-            }, 1000);
-        }, 5000);
+        }, 2000);
     }
 
     static updateTuner() {
