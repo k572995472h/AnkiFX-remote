@@ -321,6 +321,7 @@ export class AnkiFX {
         
         // If never touched, default to -header
         const initialOffset = savedOffset !== null ? parseInt(savedOffset) : -header;
+        this.tunerAutoUpdate = savedOffset === null;
         
         tuner.innerHTML = `
             <div style="font-weight: bold; color: #ff00ff; margin-bottom: 5px;">VIEWPORT TUNER</div>
@@ -336,6 +337,7 @@ export class AnkiFX {
 
         const slider = document.getElementById('afx-tuner-range');
         slider.oninput = () => {
+            this.tunerAutoUpdate = false;
             localStorage.setItem('ankifx_tuner_offset', slider.value);
             this.updateTuner();
         };
@@ -352,6 +354,36 @@ export class AnkiFX {
 
         // Initial update
         this.updateTuner();
+
+        // Monitor --io-header for changes (e.g. AnkiMobile delayed set)
+        let lastHeader = header;
+        const monitorIv = setInterval(() => {
+            const currentStyle = getComputedStyle(document.documentElement);
+            const currentHeader = parseInt(currentStyle.getPropertyValue('--io-header')) || 0;
+            if (currentHeader !== lastHeader) {
+                lastHeader = currentHeader;
+                if (this.tunerAutoUpdate) {
+                    slider.value = -currentHeader;
+                }
+                this.updateTuner();
+            }
+        }, 50);
+
+        // Slow down monitoring after 5 seconds to save battery
+        setTimeout(() => {
+            clearInterval(monitorIv);
+            setInterval(() => {
+                const currentStyle = getComputedStyle(document.documentElement);
+                const currentHeader = parseInt(currentStyle.getPropertyValue('--io-header')) || 0;
+                if (currentHeader !== lastHeader) {
+                    lastHeader = currentHeader;
+                    if (this.tunerAutoUpdate) {
+                        slider.value = -currentHeader;
+                    }
+                    this.updateTuner();
+                }
+            }, 1000);
+        }, 5000);
     }
 
     static updateTuner() {
