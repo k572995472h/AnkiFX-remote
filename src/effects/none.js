@@ -75,9 +75,4 @@ export function stopNone() {
     // Restore defaults when switching back to animated effects
     document.documentElement.style.removeProperty('--afx-body-bg');
     document.documentElement.style.removeProperty('--afx-body-color');
-    
-    // Hide Eruda if it was loaded
-    if (window.eruda) {
-        try { window.eruda.hide(); } catch(e) {}
-    }
 }
