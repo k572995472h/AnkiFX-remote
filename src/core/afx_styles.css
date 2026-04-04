@@ -159,20 +159,31 @@ body > *, #content, #container, #outer, #top-bar, #bottom-bar {
 
 .afx-dialog {
     background: rgba(25,25,30,0.96); border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 24px; padding: 1rem; max-width: 850px; width: 92%;
+    border-radius: 24px; padding: 0; max-width: 850px; width: 92%;
     box-shadow: 0 30px 80px rgba(0,0,0,0.8); display: flex; flex-direction: column;
     align-items: center; text-align: center; position: relative;
     height: 75dvh; max-height: 90vh; overflow: hidden !important; pointer-events: auto !important;
 }
 
+
 .afx-terms {
     font-family: 'Courier New', monospace; background: rgba(0,0,0,0.4);
-    padding: 1.2rem; border-radius: 16px; margin-bottom: 1rem;
+    padding: 1.5rem; border-radius: 24px 24px 0 0; margin-bottom: 0;
     width: 100%; flex: 1; overflow-y: auto;
-    line-height: 1.8; border: 1px solid rgba(255,255,255,0.05);
+    line-height: 1.8; border-bottom: 1px solid rgba(255,255,255,0.05);
     font-size: var(--afx-terms-font-size); color: #ccc;
+    box-sizing: border-box;
 }
-.afx-terms h3 { font-size: var(--afx-dialog-h3-size); margin-bottom: 15px; }
+.afx-terms h3 { font-size: var(--afx-dialog-h3-size); margin: 0 0 15px 0; }
+
+.afx-action-row {
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
 
 .afx-btn, .afx-playback-btn, #afx-effect-selector, .afx-sub-picker, .afx-control-row {
     font-family: 'Courier New', Courier, monospace !important;
