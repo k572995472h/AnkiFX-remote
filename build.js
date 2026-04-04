@@ -81,6 +81,7 @@ async function runBuild() {
         // 🚀 SIMPLIFICATION: Output the engine directly into the build folder
         outfile: 'build/_ankifx.js',
         format: 'iife',
+        loader: { '.css': 'text' },
         plugins: [effectsRegistryPlugin, copyStaticFilesPlugin]
     });
 
