@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -12,10 +11,16 @@ export const effect = {
         currentW = w;
         currentH = h;
     },
-    preferredTrack: { trackTitle: "star wars title" }
+    preferredTrack: { trackTitle: "star wars title" },
+    marqueeFont: {
+        color: '#FFE81F', // Star Wars Yellow
+        shadowColor: '#FFE81F',
+        shadowBlur: 20,
+        outline: '#000'
+    }
 };
 
-export function runStarfield(contexts, marqueeText, position = 'bottom') {
+export function runStarfield(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
@@ -226,13 +231,6 @@ export function runStarfield(contexts, marqueeText, position = 'bottom') {
         });
     }
 
-    const marquee = new Marquee(marqueeText, position, {
-        color: '#FFE81F', // Star Wars Yellow
-        shadowColor: '#FFE81F',
-        shadowBlur: 20,
-        outline: '#000'
-    });
-
     let time = 0;
 
     function render() {
@@ -306,13 +304,9 @@ export function runStarfield(contexts, marqueeText, position = 'bottom') {
         }
         ctx.globalAlpha = 1.0;
 
-        // Marquee
-        marquee.render(ctx, currentW, currentH);
-
         animationId = requestAnimationFrame(render);
     }
     animationId = requestAnimationFrame(render);
-    return marquee;
 }
 
 export function stopStarfield() {

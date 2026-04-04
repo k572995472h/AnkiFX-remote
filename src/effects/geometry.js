@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -11,21 +10,19 @@ export const effect = {
     onResize: (w, h) => {
         currentW = w;
         currentH = h;
-    }
-};
-
-export function runGeometry(contexts, marqueeText, position = 'bottom') {
-    const ctx = contexts.ctx2d;
-    currentW = contexts.width;
-    currentH = contexts.height;
-
-    let time = 0;
-
-    const marquee = new Marquee(marqueeText, position, {
+    },
+    marqueeFont: {
         colorFn: (time, i) => `hsl(${(time * 120 + i * 4) % 360}, 100%, 55%)`,
         shadowColor: 'inherit',
         shadowBlur: 15
-    });
+    }
+};
+
+export function runGeometry(contexts, config) {
+    const ctx = contexts.ctx2d;
+    currentW = contexts.width;
+    currentH = contexts.height;
+    let time = 0;
 
     function render() {
         time += 0.012;
@@ -68,11 +65,9 @@ export function runGeometry(contexts, marqueeText, position = 'bottom') {
         }
 
         ctx.globalCompositeOperation = 'source-over';
-        marquee.render(ctx, currentW, currentH);
         animationId = requestAnimationFrame(render);
     }
     animationId = requestAnimationFrame(render);
-    return marquee;
 }
 
 export function stopGeometry() {

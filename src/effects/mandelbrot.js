@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -17,7 +16,11 @@ export const effect = {
             glCtx.uniform2f(resLoc, w * dpr, h * dpr);
         }
     },
-    preferredTrack: { title: "Acoustica Power Bundle 4", trackTitle: "AiR" }
+    preferredTrack: { title: "Acoustica Power Bundle 4", trackTitle: "AiR" },
+    marqueeFont: {
+        color: '#FFF',
+        outline: '#000'
+    }
 };
 
 let currentMouseListener = null;
@@ -30,7 +33,7 @@ let mandelbrotState = {
     speed: parseFloat(localStorage.getItem('ankifx_mandelbrot_speed')) || 0.15
 };
 
-export function runMandelbrot(contexts, marqueeText, position = 'bottom', config = {}) {
+export function runMandelbrot(contexts, config = {}) {
     glCtx = contexts.gl;
     const gl = contexts.gl;
     const ctx = contexts.ctx2d;
@@ -214,7 +217,6 @@ export function runMandelbrot(contexts, marqueeText, position = 'bottom', config
         currentMouseMoveListener = handleMouseMove; 
     }
 
-    const marquee = new Marquee(marqueeText, position, { color: '#FFF', outline: '#000' });
     const startTime = performance.now() * 0.001;
     
     function render() {
@@ -226,7 +228,6 @@ export function runMandelbrot(contexts, marqueeText, position = 'bottom', config
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         ctx.clearRect(0, 0, currentW, currentH);
-        marquee.render(ctx, currentW, currentH);
         
         if (debugInfoEl && getCoordsAt) {
             const currentTime = (performance.now() * 0.001) - startTime;
@@ -236,7 +237,6 @@ export function runMandelbrot(contexts, marqueeText, position = 'bottom', config
         animationId = requestAnimationFrame(render);
     }
     render();
-    return marquee;
 }
 
 export function stopMandelbrot() {

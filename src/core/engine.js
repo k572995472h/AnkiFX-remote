@@ -1,19 +1,23 @@
 import { EFFECTS } from '../effects/registry.js';
+import { Marquee } from '../effects/marquee.js';
 import { Jukebox } from './jukebox.js';
 import styles from './afx_styles.css';
 
 export class AnkiFX {
-    static activeMarquee = null;
+    static marquee = null;
     static jukebox = null;
     static defaultMarqueeText = null;
     static sharedGL = null;
     static shared2D = null;
+    static sharedMarquee = null;
     static glContext = null;
     static ctx2D = null;
+    static ctxMarquee = null;
     static currentEffectId = null;
     static dpr = 1;
     static width = 0;
     static height = 0;
+    static marqueeInterval = null;
 
     static init(options = {}) {
         const config = window.AnkiFX_Config || {
@@ -99,12 +103,22 @@ export class AnkiFX {
         // Initial resize/setup
         this.handleResize();
         config.debug = debug;
+
+        // --- UNIFIED MARQUEE INIT ---
+        if (!this.marquee) {
+            this.marquee = new Marquee(config.marquee, options.marqueePosition || 'bottom');
+            this.startMarqueeLoop();
+        } else {
+            this.marquee.setText(config.marquee);
+            this.marquee.setPosition(options.marqueePosition || 'bottom');
+        }
+
         this.startEffect(config, background, options.marqueePosition, activeEffect);
         
         // Initialize Marquee state from persistence
         const marqueeEnabled = localStorage.getItem('ankifx_marquee_enabled') !== 'false';
-        if (this.activeMarquee) {
-            this.activeMarquee.enabled = marqueeEnabled;
+        if (this.marquee) {
+            this.marquee.enabled = marqueeEnabled;
         }
     }
 
@@ -214,7 +228,7 @@ export class AnkiFX {
 
     static handleResize() {
         const background = document.getElementById('ankifx-background');
-        if (!background || !this.sharedGL || !this.shared2D) return;
+        if (!background || !this.sharedGL || !this.shared2D || !this.sharedMarquee) return;
 
         const rect = background.getBoundingClientRect();
         this.width = rect.width;
@@ -233,6 +247,12 @@ export class AnkiFX {
         this.shared2D.style.width = this.width + 'px';
         this.shared2D.style.height = this.height + 'px';
 
+        // Resize Marquee Canvas
+        this.sharedMarquee.width = this.width * this.dpr;
+        this.sharedMarquee.height = this.height * this.dpr;
+        this.sharedMarquee.style.width = this.width + 'px';
+        this.sharedMarquee.style.height = this.height + 'px';
+
         // Global context resets
         if (this.glContext) {
             this.glContext.viewport(0, 0, this.sharedGL.width, this.sharedGL.height);
@@ -240,6 +260,10 @@ export class AnkiFX {
         if (this.ctx2D) {
             this.ctx2D.setTransform(1, 0, 0, 1, 0, 0);
             this.ctx2D.scale(this.dpr, this.dpr);
+        }
+        if (this.ctxMarquee) {
+            this.ctxMarquee.setTransform(1, 0, 0, 1, 0, 0);
+            this.ctxMarquee.scale(this.dpr, this.dpr);
         }
 
         // Notify active effect
@@ -374,8 +398,14 @@ export class AnkiFX {
         this.shared2D.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;';
         background.appendChild(this.shared2D);
 
+        this.sharedMarquee = document.createElement('canvas');
+        this.sharedMarquee.id = 'afx-shared-marquee';
+        this.sharedMarquee.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;';
+        background.appendChild(this.sharedMarquee);
+
         this.glContext = this.sharedGL.getContext('webgl', { alpha: false, antialias: false });
         this.ctx2D = this.shared2D.getContext('2d');
+        this.ctxMarquee = this.sharedMarquee.getContext('2d');
 
         document.body.appendChild(overlay);
 
@@ -449,11 +479,11 @@ export class AnkiFX {
                 onTrackChange: (track) => {
                     const str = `NOW PLAYING: ${track.artist} - ${track.title} - ${track.trackTitle}`;
                     config.marquee = str;
-                    if (AnkiFX.activeMarquee) AnkiFX.activeMarquee.setText(str);
+                    if (AnkiFX.marquee) AnkiFX.marquee.setText(str);
                 },
                 onError: (msg) => {
                     config.marquee = msg;
-                    if (AnkiFX.activeMarquee) AnkiFX.activeMarquee.setText(msg);
+                    if (AnkiFX.marquee) AnkiFX.marquee.setText(msg);
                 }
             });
 
@@ -486,7 +516,7 @@ export class AnkiFX {
                     status.style.color = "#fff";
                     AnkiFX.jukebox.stop();
                     config.marquee = AnkiFX.defaultMarqueeText;
-                    if (AnkiFX.activeMarquee) AnkiFX.activeMarquee.setText(AnkiFX.defaultMarqueeText);
+                    if (AnkiFX.marquee) AnkiFX.marquee.setText(AnkiFX.defaultMarqueeText);
                 }
             });
         }
@@ -500,8 +530,8 @@ export class AnkiFX {
                 localStorage.setItem('ankifx_marquee_enabled', isEnabled);
                 const textPrefix = isSmallScreen ? '📜 ' : '📜 TEXT: ';
                 textStatus.textContent = isSmallScreen ? textPrefix.trim() : (isEnabled ? `${textPrefix}ON` : `${textPrefix}OFF`);
-                if (AnkiFX.activeMarquee) {
-                    AnkiFX.activeMarquee.enabled = isEnabled;
+                if (AnkiFX.marquee) {
+                    AnkiFX.marquee.enabled = isEnabled;
                 }
             });
         }
@@ -611,13 +641,32 @@ export class AnkiFX {
                 dpr: this.dpr
             };
             this.currentEffectId = activeEffect;
-            AnkiFX.activeMarquee = effect.run(sharedContexts, config.marquee, position, config);
+            
+            // Apply effect-specific marquee styling
+            if (this.marquee) {
+                this.marquee.updateStyles(effect.marqueeFont || {});
+            }
+
+            effect.run(sharedContexts, config);
             
             // Respect toggle state on new effect start
             const marqueeEnabled = localStorage.getItem('ankifx_marquee_enabled') !== 'false';
-            if (AnkiFX.activeMarquee) {
-                AnkiFX.activeMarquee.enabled = marqueeEnabled;
+            if (this.marquee) {
+                this.marquee.enabled = marqueeEnabled;
             }
         }
+    }
+
+    static startMarqueeLoop() {
+        if (this.marqueeInterval) return;
+        
+        const tick = () => {
+            if (this.marquee && this.ctxMarquee) {
+                this.ctxMarquee.clearRect(0, 0, this.width, this.height);
+                this.marquee.render(this.ctxMarquee, this.width, this.height);
+            }
+            this.marqueeInterval = requestAnimationFrame(tick);
+        };
+        this.marqueeInterval = requestAnimationFrame(tick);
     }
 }

@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -11,21 +10,20 @@ export const effect = {
     onResize: (w, h) => {
         currentW = w;
         currentH = h;
+    },
+    marqueeFont: {
+        color: '#ffffff',
+        shadowColor: 'rgba(0,0,0,0.8)',
+        shadowBlur: 5
     }
 };
 
-export function runPlasma(contexts, marqueeText, position = 'bottom') {
+export function runPlasma(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
 
     let time = 0;
-
-    const marquee = new Marquee(marqueeText, position, {
-        color: '#ffffff',
-        shadowColor: 'rgba(0,0,0,0.8)',
-        shadowBlur: 5
-    });
 
     function render() {
         time += 0.05;
@@ -54,13 +52,9 @@ export function runPlasma(contexts, marqueeText, position = 'bottom') {
             }
         }
 
-        // Marquee
-        marquee.render(ctx, currentW, currentH);
-
         animationId = requestAnimationFrame(render);
     }
     animationId = requestAnimationFrame(render);
-    return marquee;
 }
 
 export function stopPlasma() {

@@ -2,13 +2,7 @@ export class Marquee {
     constructor(text = '', position = 'bottom', options = {}) {
         this.text = text;
         this.position = position;
-        
-        // Unified style options
-        this.color = options.color || '#FFF';
-        this.outline = options.outline || null;
-        this.shadowColor = options.shadowColor || null;
-        this.shadowBlur = options.shadowBlur || 0;
-        this.colorFn = options.colorFn || null; // dynamic color: (time, i) => string
+        this.applyStyles(options);
 
         // State
         this.time = 0;
@@ -25,8 +19,24 @@ export class Marquee {
         this.enabled = true;
     }
 
+    applyStyles(options = {}) {
+        this.color = options.color || '#FFF';
+        this.outline = options.outline || null;
+        this.shadowColor = options.shadowColor || null;
+        this.shadowBlur = options.shadowBlur || 0;
+        this.colorFn = options.colorFn || null;
+    }
+
+    updateStyles(options = {}) {
+        this.applyStyles(options);
+    }
+
     setText(text) {
         this.text = text;
+    }
+
+    setPosition(position) {
+        this.position = position;
     }
 
     render(ctx, w, h) {

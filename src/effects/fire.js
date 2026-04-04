@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -12,7 +11,12 @@ export const effect = {
         currentW = w;
         currentH = h;
     },
-    preferredTrack: { title: "Doom 3 BFG Edition", trackTitle: "DOOM E1M1" }
+    preferredTrack: { title: "Doom 3 BFG Edition", trackTitle: "DOOM E1M1" },
+    marqueeFont: {
+        color: '#ffffff',
+        shadowColor: 'rgba(0,0,0,0.8)',
+        shadowBlur: 5
+    }
 };
 
 const FIRE_PALETTE = [
@@ -28,7 +32,7 @@ const FIRE_PALETTE = [
     [0xFF,0xFF,0xFF]
 ];
 
-export function runFire(contexts, marqueeText, position = 'bottom') {
+export function runFire(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
@@ -88,12 +92,6 @@ export function runFire(contexts, marqueeText, position = 'bottom') {
 
     initFire();
 
-    const marquee = new Marquee(marqueeText, position, {
-        color: '#ffffff',
-        shadowColor: 'rgba(0,0,0,0.8)',
-        shadowBlur: 5
-    });
-
     function render() {
         doFire();
         updateImageData();
@@ -107,14 +105,10 @@ export function runFire(contexts, marqueeText, position = 'bottom') {
         ctx.drawImage(offscreen, 0, 0, currentW, currentH);
         ctx.restore();
 
-        // Overlay marquee
-        marquee.render(ctx, currentW, currentH);
-        
         animationId = requestAnimationFrame(render);
     }
 
     animationId = requestAnimationFrame(render);
-    return marquee;
 }
 
 export function stopFire() {

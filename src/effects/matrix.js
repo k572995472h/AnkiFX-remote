@@ -1,5 +1,3 @@
-import { Marquee } from './marquee.js';
-
 let animationId = null;
 let currentW, currentH;
 const fontSize = 16;
@@ -23,10 +21,15 @@ export const effect = {
         currentH = h;
         initColumns();
     },
-    preferredTrack: { trackTitle: "nightfall" }
+    preferredTrack: { trackTitle: "nightfall" },
+    marqueeFont: {
+        color: '#0F0',
+        shadowColor: '#0F0',
+        shadowBlur: 10
+    }
 };
 
-export function runMatrix(contexts, marqueeText, position = 'bottom') {
+export function runMatrix(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
@@ -34,12 +37,6 @@ export function runMatrix(contexts, marqueeText, position = 'bottom') {
     initColumns();
 
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*]*";
-
-    const marquee = new Marquee(marqueeText, position, {
-        color: '#0F0',
-        shadowColor: '#0F0',
-        shadowBlur: 10
-    });
 
     function render() {
         // Fade out previous frame giving a glowing trail effect
@@ -65,13 +62,9 @@ export function runMatrix(contexts, marqueeText, position = 'bottom') {
             }
         }
 
-        // Marquee
-        marquee.render(ctx, currentW, currentH);
-
         animationId = requestAnimationFrame(render);
     }
     animationId = requestAnimationFrame(render);
-    return marquee;
 }
 
 export function stopMatrix() {

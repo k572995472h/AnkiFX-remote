@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -24,7 +23,13 @@ export const effect = {
         currentH = h;
         buildGame();
     },
-    preferredTrack: { title: "WinTask 3", trackTitle: "Whoopees Tetris" }
+    preferredTrack: { title: "WinTask 3", trackTitle: "Whoopees Tetris" },
+    marqueeFont: {
+        color: '#f0f0f0',
+        shadowColor: '#a000f0',
+        shadowBlur: 12,
+        outline: '#000'
+    }
 };
 
 // ─── Tetromino definitions (each rotation) ────────────────────────────────────
@@ -451,19 +456,12 @@ class TetrisGame {
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
-export function runTetris(contexts, marqueeText, position = 'bottom') {
+export function runTetris(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
 
     buildGame();
-
-    const marquee = new Marquee(marqueeText, position, {
-        color: '#f0f0f0',
-        shadowColor: '#a000f0',
-        shadowBlur: 12,
-        outline: '#000'
-    });
 
     function render() {
         // Dark semi-transparent background
@@ -498,13 +496,10 @@ export function runTetris(contexts, marqueeText, position = 'bottom') {
             game.draw(ctx, ox, oy);
         }
 
-        marquee.render(ctx, currentW, currentH);
-
         animationId = requestAnimationFrame(render);
     }
 
     animationId = requestAnimationFrame(render);
-    return marquee;
 }
 
 export function stopTetris() {

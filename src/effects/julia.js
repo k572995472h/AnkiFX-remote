@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -25,7 +24,11 @@ export const effect = {
         { name: 'Filigree', cRe: -0.70176, cIm: -0.3842, zoomDepth: 10.5, targetX: -0.096904, targetY: -0.656621 },
         { name: 'Fractal Storm', cRe: -0.7269, cIm: 0.1889, zoomDepth: 10.5, targetX: -0.237086, targetY: 0.547981 },
         { name: 'Seahorse Spiral', cRe: -0.74543, cIm: 0.11301, zoomDepth: 12.0, targetX: -0.529406, targetY: 0.072863 },
-    ]
+    ],
+    marqueeFont: {
+        color: '#FFF',
+        outline: '#000'
+    }
 };
 
 let currentMouseListener = null;
@@ -40,7 +43,7 @@ let juliaState = {
     speed: parseFloat(localStorage.getItem('ankifx_julia_speed')) || 0.15
 };
 
-export function runJulia(contexts, marqueeText, position = 'bottom', config = {}) {
+export function runJulia(contexts, config = {}) {
     glCtx = contexts.gl;
     const gl = contexts.gl;
     const ctx = contexts.ctx2d;
@@ -242,7 +245,6 @@ export function runJulia(contexts, marqueeText, position = 'bottom', config = {}
         currentMouseMoveListener = handleMouseMove; 
     }
 
-    const marquee = new Marquee(marqueeText, position, { color: '#FFF', outline: '#000' });
     const startTime = performance.now() * 0.001;
 
     function render() {
@@ -255,7 +257,6 @@ export function runJulia(contexts, marqueeText, position = 'bottom', config = {}
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
         ctx.clearRect(0, 0, currentW, currentH);
-        marquee.render(ctx, currentW, currentH);
 
         if (debugInfoEl && getCoordsAt) {
             const currentTime = (performance.now() * 0.001) - startTime;
@@ -266,7 +267,6 @@ export function runJulia(contexts, marqueeText, position = 'bottom', config = {}
     }
 
     render();
-    return marquee;
 }
 
 export function stopJulia() {

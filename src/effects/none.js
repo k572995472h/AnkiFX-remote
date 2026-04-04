@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -11,10 +10,15 @@ export const effect = {
     onResize: (w, h) => {
         currentW = w;
         currentH = h;
+    },
+    marqueeFont: {
+        color: '#ffffff',
+        shadowColor: 'rgba(0,0,0,0.8)',
+        shadowBlur: 5
     }
 };
 
-export function runNone(contexts, marqueeText, position = 'bottom') {
+export function runNone(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
@@ -33,21 +37,11 @@ export function runNone(contexts, marqueeText, position = 'bottom') {
         document.documentElement.style.setProperty('--afx-body-color', '#000000', 'important');
     }
 
-    // 3. Initialize Marquee
-    const marquee = new Marquee(marqueeText, position, {
-        color: isNightMode ? '#ffffff' : '#000000',
-        shadowColor: isNightMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
-        shadowBlur: 5
-    });
-
     function render() {
         ctx.clearRect(0, 0, currentW, currentH);
-        marquee.render(ctx, currentW, currentH);
         animationId = requestAnimationFrame(render);
     }
     animationId = requestAnimationFrame(render);
-
-    return marquee;
 }
 
 export function stopNone() {

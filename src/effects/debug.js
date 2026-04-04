@@ -1,4 +1,3 @@
-import { Marquee } from './marquee.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -11,19 +10,20 @@ export const effect = {
     onResize: (w, h) => {
         currentW = w;
         currentH = h;
+    },
+    marqueeFont: {
+        color: '#00ff00',
+        shadowColor: 'rgba(0,0,0,0.8)',
+        shadowBlur: 5
     }
 };
 
-export function runDebug(contexts, marqueeText, position = 'bottom') {
+export function runDebug(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
 
-    const marquee = new Marquee(marqueeText, position, {
-        color: '#00ff00',
-        shadowColor: 'rgba(0,0,0,0.8)',
-        shadowBlur: 5
-    });
+    currentH = contexts.height;
 
     function render() {
         ctx.fillStyle = '#000';
@@ -127,14 +127,10 @@ export function runDebug(contexts, marqueeText, position = 'bottom') {
         ctx.lineTo(currentW - 2, currentH);
         ctx.stroke();
 
-        // Overlay marquee
-        marquee.render(ctx, currentW, currentH);
-
         animationId = requestAnimationFrame(render);
     }
 
     render();
-    return marquee;
 }
 
 export function stopDebug() {
