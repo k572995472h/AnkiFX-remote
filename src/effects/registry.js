@@ -6,9 +6,10 @@ import { effect as eff3 } from './julia.js';
 import { effect as eff4 } from './mandelbrot.js';
 import { effect as eff5 } from './matrix.js';
 import { effect as eff6 } from './none.js';
-import { effect as eff7 } from './plasma.js';
-import { effect as eff8 } from './starfield.js';
-import { effect as eff9 } from './tetris.js';
+import { effect as eff7 } from './norway.js';
+import { effect as eff8 } from './plasma.js';
+import { effect as eff9 } from './starfield.js';
+import { effect as eff10 } from './tetris.js';
 
 export const EFFECTS = {
     'debug': eff0,
@@ -18,7 +19,8 @@ export const EFFECTS = {
     'mandelbrot': eff4,
     'matrix': eff5,
     'none': eff6,
-    'plasma': eff7,
-    'starfield': eff8,
-    'tetris': eff9,
+    'norway': eff7,
+    'plasma': eff8,
+    'starfield': eff9,
+    'tetris': eff10,
 };
