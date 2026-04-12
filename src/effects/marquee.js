@@ -57,6 +57,7 @@ export class Marquee {
 
         this.time += 0.012;
 
+        if (!this.text) return; // Defensive check
         const totalTextWidth = this.text.length * currentCharWidth;
         this.textX -= currentVelocity;
         

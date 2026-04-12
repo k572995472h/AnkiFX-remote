@@ -18,10 +18,10 @@ export class AnkiFX {
     static width = 0;
     static height = 0;
     static marqueeInterval = null;
+    static _layoutHandler = null;
 
     static init(templateOptions = {}) {
         // --- UNIFIED CONFIG MERGER ---
-        // Priority: Engine Defaults -> Global Card Config -> Template Overrides
         const config = {
             deckTitle: "AnkiFX Deck",
             deckAuthor: "Anonymous",
@@ -38,7 +38,6 @@ export class AnkiFX {
 
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-
         // Check if Anki flipped the card and overlay is already running
         if (document.getElementById('ankifx-overlay')) {
             const overlay = document.getElementById('ankifx-overlay');
@@ -50,6 +49,18 @@ export class AnkiFX {
                     qa.style.position = "relative";
                     qa.style.zIndex = "10";
                 }
+                
+                // IMPORTANT: Refresh configurations even if we skip full init
+                this.defaultMarqueeText = config.marquee;
+                if (this.marquee) {
+                    this.marquee.setText(config.marquee);
+                    this.marquee.setPosition(config.marqueePosition);
+                }
+                
+                // Refresh title if it exists
+                const titleEl = document.getElementById('afx-deck-title');
+                if (titleEl) titleEl.textContent = config.deckTitle;
+
                 return;
             }
         }
@@ -69,7 +80,7 @@ export class AnkiFX {
         // --- RESTORED: Build the song map from registry ---
         this.EFFECT_SONG_MAP = {};
         Object.entries(EFFECTS).forEach(([id, eff]) => {
-            if (eff.preferredTrack) this.EFFECT_SONG_MAP[id] = eff.preferredTrack;
+            if (eff && eff.preferredTrack) this.EFFECT_SONG_MAP[id] = eff.preferredTrack;
         });
 
         this.injectCSS();
@@ -88,25 +99,27 @@ export class AnkiFX {
         // Pass isMobile and config down to the UI injector
         const { overlay, background } = this.injectUI(config, isMobile, activeEffect);
 
-
-        // Viewport Tuner System (Must be after UI injection if we want it in Body)
+        // Viewport Tuner System
         this.initTuner(config.debug, activeEffect);
 
+        // Named handler to avoid duplicate listeners on window
+        if (this._layoutHandler) {
+            window.removeEventListener('orientationchange', this._layoutHandler);
+            window.removeEventListener('resize', this._layoutHandler);
+        }
 
-        const onLayoutChange = () => {
-            // Subtle delay so Anki/iOS can settle their layout
+        this._layoutHandler = () => {
             setTimeout(() => {
                 this.handleResize();
                 this.updateTuner();
             }, 50);
         };
 
-        window.addEventListener('orientationchange', onLayoutChange);
-        window.addEventListener('resize', onLayoutChange);
+        window.addEventListener('orientationchange', this._layoutHandler);
+        window.addEventListener('resize', this._layoutHandler);
 
         // Initial resize/setup
         this.handleResize();
-
 
         // --- UNIFIED MARQUEE INIT ---
         if (!this.marquee) {
@@ -119,13 +132,13 @@ export class AnkiFX {
 
         this.startEffect(config, background, config.marqueePosition, activeEffect);
 
-
         // Initialize Marquee state from persistence
         const marqueeEnabled = localStorage.getItem('ankifx_marquee_enabled') !== 'false';
         if (this.marquee) {
             this.marquee.enabled = marqueeEnabled;
         }
     }
+
 
     static injectCSS() {
         if (document.getElementById('ankifx-styles')) return;
