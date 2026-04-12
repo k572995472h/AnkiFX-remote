@@ -21,6 +21,7 @@ export class AnkiFX {
     static _layoutHandler = null;
 
     static init(templateOptions = {}) {
+
         // --- UNIFIED CONFIG MERGER ---
         const config = {
             deckTitle: "AnkiFX Deck",
