@@ -4,4 +4,4 @@ build/
 *.log
 .env
 .antigravity/
-.gemini/
+.gemini/configs/_afx_*.js\n!configs/_afx_example.js

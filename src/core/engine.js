@@ -21,10 +21,11 @@ export class AnkiFX {
 
     static init(options = {}) {
         const config = window.AnkiFX_Config || {
-            courseName: "Unknown Course",
+            deckTitle: "AnkiFX Deck",
+            deckAuthor: "Anonymous",
             termsText: "No terms provided.",
             sources: [],
-            marquee: "NO CONFIG FOUND",
+            marquee: "ANKIFX ENGINE INITIALIZED ... READY TO STUDY ...",
             defaultEffect: "geometry"
         };
 
@@ -32,10 +33,6 @@ export class AnkiFX {
         
         // Debug flag defaults to false unless explicitly passed
         const debug = options.debug === true;
-
-        if (!isMobile && options.forceShow !== true && !debug) {
-            // return; 
-        }
 
         // Check if Anki flipped the card and overlay is already running
         if (document.getElementById('ankifx-overlay')) {
@@ -159,6 +156,11 @@ export class AnkiFX {
             <button id="afx-debug-clear-storage" style="display: block; width: 100%; background: #441111; color: #ff5555; border: 1px solid #ff5555; font-family: 'Courier New', monospace; padding: 8px; cursor: pointer; border-radius: 8px; font-size: 11px; font-weight: bold; box-sizing: border-box; transition: 0.2s;">CLEAR LOCALSTORAGE</button>
         `;
         document.body.appendChild(tuner);
+
+        // --- TUNER PROPAGATION STOPPER ---
+        ['touchstart', 'touchend', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(evt => {
+            tuner.addEventListener(evt, (e) => e.stopPropagation(), { passive: false });
+        });
 
         const slider = document.getElementById('afx-tuner-range');
         slider.oninput = () => {
@@ -360,21 +362,30 @@ export class AnkiFX {
             </div>
         `;
 
-        let sourcesHtml = config.sources.map(s => `<li>${s}</li>`).join('');
+        const hasTerms = config.termsText && config.termsText.trim() !== "";
+        let dialogHtml = "";
 
-        overlay.innerHTML = `
-            <div class="afx-dialog">
-                <div class="afx-terms">
-                    <h3>${config.courseName}</h3>
-                    <p>${config.termsText}</p>
-                    <p><strong>Sources:</strong></p>
-                    <ul>${sourcesHtml}</ul>
+        if (hasTerms) {
+            let sourcesHtml = config.sources.map(s => `<li>${s}</li>`).join('');
+            dialogHtml = `
+                <div class="afx-dialog">
+                    <div class="afx-terms">
+                        <h3>${config.deckTitle}</h3>
+                        ${config.deckAuthor ? `<h4 style="margin: -10px 0 15px 0; opacity: 0.7; font-size: 0.9rem;">by ${config.deckAuthor}</h4>` : ''}
+                        <p>${config.termsText}</p>
+                        ${config.sources && config.sources.length > 0 ? `
+                            <p><strong>Sources:</strong></p>
+                            <ul>${sourcesHtml}</ul>
+                        ` : ''}
+                    </div>
+                    <div class="afx-action-row">
+                        <button id="afx-consent-btn" class="afx-btn" disabled>I AGREE</button>
+                    </div>
                 </div>
-                <div class="afx-action-row">
-                    <button id="afx-consent-btn" class="afx-btn" disabled>I AGREE</button>
-                </div>
-            </div>
-        `;
+            `;
+        }
+
+        overlay.innerHTML = dialogHtml;
 
         // Inject corner controls (Toggles & Picker) directly into overlay
         const tempContainer = document.createElement('div');
@@ -422,48 +433,60 @@ export class AnkiFX {
 
         overlay.appendChild(btnBack);
         overlay.appendChild(btnSkip);
+        
+        // --- UNIVERSAL PROPAGATION STOPPER (AnkiMobile Fix) ---
+        const stopProps = (e) => {
+            const isAgreed = overlay.classList.contains('afx-agreed-state');
+            const isInteractive = e.target.closest('button, input, select, .afx-slider, .afx-toggle, .afx-playback-btn, select option');
+
+            // 1. Before Agreement: Protect the entire screen from accidental flips
+            if (!isAgreed) {
+                e.stopPropagation();
+            } 
+            // 2. After Agreement: Only protect UI controls; empty space remains flippable
+            else if (isInteractive) {
+                e.stopPropagation();
+            }
+        };
+        ['touchstart', 'touchend', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(evt => {
+            overlay.addEventListener(evt, stopProps, { passive: false });
+        });
 
         // Logic Bindings
         const btn = document.getElementById('afx-consent-btn');
-        let countdown = options.countdown || 0;
+        
+        if (hasTerms && btn) {
+            let countdown = options.countdown || 0;
 
-        // Skip countdown if debug mode is active
-        if (debug) countdown = 0;
+            // Skip countdown if debug mode is active
+            if (debug) countdown = 0;
 
-        if (countdown > 0) {
-            btn.textContent = `( ${countdown} )`;
-            const iv = setInterval(() => {
-                countdown--;
+            if (countdown > 0) {
                 btn.textContent = `( ${countdown} )`;
-                if (countdown <= 0) {
-                    clearInterval(iv);
-                    btn.textContent = `I AGREE`;
-                    btn.disabled = false;
-                }
-            }, 1000);
-        } else {
-            btn.textContent = `I AGREE`;
-            btn.disabled = false;
-        }
-
-        overlay.addEventListener('click', (e) => e.stopPropagation());
-        overlay.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
-
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!btn.disabled) {
-                overlay.classList.add('afx-agreed-state');
-                document.documentElement.classList.add('afx-agreed');
-                document.documentElement.classList.remove('afx-scroll-lock');
-                
-                // Ensure the "qa" element is above the background
-                const qa = document.getElementById("qa");
-                if (qa) {
-                    qa.style.position = "relative";
-                    qa.style.zIndex = "10";
-                }
+                const iv = setInterval(() => {
+                    countdown--;
+                    btn.textContent = `( ${countdown} )`;
+                    if (countdown <= 0) {
+                        clearInterval(iv);
+                        btn.textContent = `I AGREE`;
+                        btn.disabled = false;
+                    }
+                }, 1000);
+            } else {
+                btn.textContent = `I AGREE`;
+                btn.disabled = false;
             }
-        });
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!btn.disabled) {
+                    this.agree(overlay);
+                }
+            });
+        } else {
+            // Auto-agree if no terms
+            this.agree(overlay);
+        }
 
         // Audio Bindings
         const audioToggle = document.getElementById('afx-audio-toggle');
@@ -661,6 +684,19 @@ export class AnkiFX {
             if (this.marquee) {
                 this.marquee.enabled = marqueeEnabled;
             }
+        }
+    }
+
+    static agree(overlay) {
+        overlay.classList.add('afx-agreed-state');
+        document.documentElement.classList.add('afx-agreed');
+        document.documentElement.classList.remove('afx-scroll-lock');
+        
+        // Ensure the "qa" element is above the background
+        const qa = document.getElementById("qa");
+        if (qa) {
+            qa.style.position = "relative";
+            qa.style.zIndex = "10";
         }
     }
 

@@ -31,6 +31,7 @@ export const effect = {
 
 let animationId = null;
 let currentW, currentH;
+let currentCanvas = null; // --- Capture for cleanup ---
 let time = 0;
 let lastStep = 0;
 let mouse = { x: -1000, y: -1000 };
@@ -178,16 +179,17 @@ export function runAurora(contexts, config) {
     const ctx = contexts.ctx2d;
     
     // Apply smoothing class to canvas
-    const canvas = contexts.canvas2D;
-    canvas.classList.add('afx-aurora-active');
+    currentCanvas = contexts.canvas2D;
+    currentCanvas.classList.add('afx-aurora-active');
 
     // Set internal dimensions to 1/8th for the "low quality" buffer effect
     currentW = contexts.width / 8;
     currentH = contexts.height / 8;
     
     // Adjust backbuffer size
-    canvas.width = currentW * contexts.dpr;
-    canvas.height = currentH * contexts.dpr;
+    currentCanvas.width = currentW * contexts.dpr;
+    currentCanvas.height = currentH * contexts.dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset before scale
     ctx.scale(contexts.dpr, contexts.dpr);
 
     initStars();
@@ -282,12 +284,15 @@ export function stopAurora() {
     window.removeEventListener('touchmove', updateMouse);
 
     // 1. Remove the smoothing class FIRST to release CSS overrides
-    if (window.AnkiFX && window.AnkiFX.shared2D) {
-        window.AnkiFX.shared2D.classList.remove('afx-aurora-active');
+    if (currentCanvas) {
+        currentCanvas.classList.remove('afx-aurora-active');
+        currentCanvas = null;
     }
 
     // 2. Restore shared canvas resolution for other effects
-    if (window.AnkiFX) {
-        window.AnkiFX.handleResize();
+    // Use window.AnkiFX.handleResize() but check both class and window
+    const AFX = window.AnkiFX;
+    if (AFX && typeof AFX.handleResize === 'function') {
+        AFX.handleResize();
     }
 }

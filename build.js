@@ -72,7 +72,7 @@ const copyStaticFilesPlugin = {
     },
 };
 
-// 2. Run the build
+// 3. Run the build
 async function runBuild() {
     const ctx = await esbuild.context({
         entryPoints: ['src/index.js'],
