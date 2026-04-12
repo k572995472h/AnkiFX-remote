@@ -19,20 +19,25 @@ export class AnkiFX {
     static height = 0;
     static marqueeInterval = null;
 
-    static init(options = {}) {
-        const config = window.AnkiFX_Config || {
+    static init(templateOptions = {}) {
+        // --- UNIFIED CONFIG MERGER ---
+        // Priority: Engine Defaults -> Global Card Config -> Template Overrides
+        const config = {
             deckTitle: "AnkiFX Deck",
             deckAuthor: "Anonymous",
             termsText: "No terms provided.",
             sources: [],
-            marquee: "ANKIFX ENGINE INITIALIZED ... READY TO STUDY ...",
-            defaultEffect: "geometry"
+            marquee: "ANKIFX ENGINE INITIALIZED ...",
+            defaultEffect: "geometry",
+            debug: false,
+            countdown: 30,
+            marqueePosition: 'bottom',
+            ...(window.AnkiFX_Config || {}),
+            ...templateOptions
         };
 
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Debug flag defaults to false unless explicitly passed
-        const debug = options.debug === true;
+
 
         // Check if Anki flipped the card and overlay is already running
         if (document.getElementById('ankifx-overlay')) {
@@ -80,11 +85,13 @@ export class AnkiFX {
             activeEffect = localStorage.getItem('ankifx_preferred_effect') || config.defaultEffect || 'geometry';
         }
 
-        // Pass isMobile and debug down to the UI injector
-        const { overlay, background } = this.injectUI(config, options, isMobile, debug, activeEffect);
+        // Pass isMobile and config down to the UI injector
+        const { overlay, background } = this.injectUI(config, isMobile, activeEffect);
+
         
         // Viewport Tuner System (Must be after UI injection if we want it in Body)
-        this.initTuner(debug, activeEffect);
+        this.initTuner(config.debug, activeEffect);
+
         
         const onLayoutChange = () => {
              // Subtle delay so Anki/iOS can settle their layout
@@ -99,18 +106,19 @@ export class AnkiFX {
         
         // Initial resize/setup
         this.handleResize();
-        config.debug = debug;
+
 
         // --- UNIFIED MARQUEE INIT ---
         if (!this.marquee) {
-            this.marquee = new Marquee(config.marquee, options.marqueePosition || 'bottom');
+            this.marquee = new Marquee(config.marquee, config.marqueePosition);
             this.startMarqueeLoop();
         } else {
             this.marquee.setText(config.marquee);
-            this.marquee.setPosition(options.marqueePosition || 'bottom');
+            this.marquee.setPosition(config.marqueePosition);
         }
 
-        this.startEffect(config, background, options.marqueePosition, activeEffect);
+        this.startEffect(config, background, config.marqueePosition, activeEffect);
+
         
         // Initialize Marquee state from persistence
         const marqueeEnabled = localStorage.getItem('ankifx_marquee_enabled') !== 'false';
@@ -274,13 +282,14 @@ export class AnkiFX {
         }
     }
 
-    static injectUI(config, options, isMobile, debug, activeEffect) {
+    static injectUI(config, isMobile, activeEffect) {
         const overlay = document.createElement('div');
         overlay.id = 'ankifx-overlay';
 
-        if (debug) {
+        if (config.debug) {
             overlay.classList.add('afx-debug-active');
         }
+
 
         // Space allocation for marquee
         const screenWidth = window.innerWidth || document.documentElement.clientWidth || 800;
@@ -289,9 +298,10 @@ export class AnkiFX {
 
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         if (isIOS) {
-            if (options.marqueePosition === 'top') {
+            if (config.marqueePosition === 'top') {
                 overlay.style.paddingTop = `calc(1rem + ${marqueeSpace}px)`;
             } else {
+
                 overlay.style.paddingBottom = `calc(1rem + ${marqueeSpace}px)`;
             }
         }
@@ -325,8 +335,9 @@ export class AnkiFX {
         const effSuffix = isSmallScreen ? '' : ' ]';
 
         const effectOptions = Object.values(EFFECTS)
-            .filter(e => e.id !== 'debug' || debug) // Only show debug if flag is true
+            .filter(e => e.id !== 'debug' || config.debug) // Only show debug if flag is true
             .map(e => `
+
                 <option value="${e.id}" ${activeEffect === e.id ? 'selected' : ''}>
                     ${effPrefix}${e.name}${effSuffix}
                 </option>
@@ -456,12 +467,13 @@ export class AnkiFX {
         const btn = document.getElementById('afx-consent-btn');
         
         if (hasTerms && btn) {
-            let countdown = options.countdown || 0;
+            let countdown = config.countdown || 0;
 
             // Skip countdown if debug mode is active
-            if (debug) countdown = 0;
+            if (config.debug) countdown = 0;
 
             if (countdown > 0) {
+
                 btn.textContent = `( ${countdown} )`;
                 const iv = setInterval(() => {
                     countdown--;
@@ -597,7 +609,8 @@ export class AnkiFX {
                     overlay.classList.remove('afx-debug-active');
                     if (tuner) tuner.classList.remove('active');
                 }
-                AnkiFX.startEffect(config, background, options.marqueePosition, newEffect);
+                AnkiFX.startEffect(config, background, config.marqueePosition, newEffect);
+
 
                 // --- RESTORED: Associated Song Switcher ---
                 if (AnkiFX.jukebox && AnkiFX.jukebox.isPlaying) {
@@ -636,8 +649,9 @@ export class AnkiFX {
                     // Restart Julia effect
                     EFFECTS['julia'].stop();
                     if (this.ctx2D) this.ctx2D.clearRect(0, 0, this.width, this.height);
-                    AnkiFX.startEffect(config, background, options.marqueePosition, 'julia');
+                    AnkiFX.startEffect(config, background, config.marqueePosition, 'julia');
                 }
+
             });
         }
 
