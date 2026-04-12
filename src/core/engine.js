@@ -4,23 +4,8 @@ import { Jukebox } from './jukebox.js';
 import styles from './afx_styles.css';
 
 export class AnkiFX {
-    static marquee = null;
-    static jukebox = null;
-    static defaultMarqueeText = null;
-    static sharedGL = null;
-    static shared2D = null;
-    static sharedMarquee = null;
-    static glContext = null;
-    static ctx2D = null;
-    static ctxMarquee = null;
-    static currentEffectId = null;
-    static dpr = 1;
-    static width = 0;
-    static height = 0;
-    static marqueeInterval = null;
-    static _layoutHandler = null;
-
     static init(templateOptions = {}) {
+
 
         // --- UNIFIED CONFIG MERGER ---
         const config = {
@@ -741,3 +726,20 @@ export class AnkiFX {
         this.marqueeInterval = requestAnimationFrame(tick);
     }
 }
+
+AnkiFX.marquee = null;
+AnkiFX.jukebox = null;
+AnkiFX.defaultMarqueeText = null;
+AnkiFX.sharedGL = null;
+AnkiFX.shared2D = null;
+AnkiFX.sharedMarquee = null;
+AnkiFX.glContext = null;
+AnkiFX.ctx2D = null;
+AnkiFX.ctxMarquee = null;
+AnkiFX.currentEffectId = null;
+AnkiFX.dpr = 1;
+AnkiFX.width = 0;
+AnkiFX.height = 0;
+AnkiFX.marqueeInterval = null;
+AnkiFX._layoutHandler = null;
+
