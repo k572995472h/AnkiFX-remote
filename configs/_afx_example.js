@@ -26,4 +26,11 @@ window.AnkiFX_Config = {
     marquee: "GREETINGS FROM ANKIFX ... A MODULAR VISUAL ENGINE FOR ANKI ... TRY SWITCHING EFFECTS IN THE BOTTOM RIGHT ... ENJOY THE TRACKER MUSIC ... STAY FOCUSED ... STUDY HARD ...",
 
     defaultEffect: "geometry",
+
+    // --- OPTIONAL PREFERENCES ---
+
+    // debug: false,           // Set to true to bypass disclaimer countdowns and show the Viewport Tuner
+    // countdown: 30,          // Time in seconds the user must wait before they can click "I AGREE" on the terms disclaimer (if termsText is active)
+    // marqueePosition: "top", // Position of the text ticker: "top" or "bottom"
 };
+

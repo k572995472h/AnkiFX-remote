@@ -12,7 +12,7 @@ AnkiFX abstracts the entire visual layer into a standalone engine. Now, you can 
 *   **Unified Canvas Architecture**: Uses a persistent, HDPi-compliant `WebGL` and `Canvas2D` context system. Background effects switch instantly without recreating the canvas or losing study focus.
 *   **Dynamic Effect Registry**: Effects are auto-discovered during the build process and registered via an auto-generated `registry.js`. Adding a new effect is as simple as dropping a `.js` file into `src/effects/`.
 *   **Viewport Tuner System**: A real-time layout debugger designed to solve iOS/AnkiMobile viewport height and offset issues. Adjust the `--tuner-height` dynamically to ensure edge-to-edge rendering behind Anki's native UI bars.
-    *   **Debug Mode**: The tuner requires passing `{ debug: true }` to `AnkiFX.init()` and selecting the `Debug` effect in the UI.
+    *   **Debug Mode**: The tuner requires setting `debug: true` in your deck configuration payload and selecting the `Debug` effect in the UI.
 *   **Canvas Visualizers**: Eleven high-performance background effects:
     *   *Aurora*: Organic, noise-based northern lights simulation (optimized for mobile).
     *   *Fire*: Classic demoscene doom-fire simulation.
@@ -82,6 +82,74 @@ The project uses `esbuild` to bundle multiple JavaScript modules and CSS into a 
 
 ---
 
+## ⚙️ Configuration & Custom Deck Styling
+
+AnkiFX utilizes a deck-specific configuration payload to populate the attribution details, terms and conditions, scrolling marquee text, and initial effect preferences.
+
+### 1. Creating Private Deck Configurations
+To customize AnkiFX for a specific deck:
+1. Create a new JavaScript file under `configs/` prefixed with `_afx_` (e.g., `configs/_afx_my_deck.js`).
+2. Populate it using the `window.AnkiFX_Config` object format (shown below).
+3. **Git Protection**: The build system is pre-configured to automatically discover and sync your config files into the `build/` directory for Anki media export. However, all `configs/_afx_*.js` (except `_afx_example.js`) are strictly ignored in `.gitignore`. This protects private deck questions, university course details, or proprietary content from accidentally being committed to public GitHub repositories.
+
+### 2. Terms Disclaimer & Countdown Lockout
+AnkiFX supports an opt-in modal overlay for licenses, terms of service, or general deck attributions:
+* **Attribution Dialog Activation**: If the `termsText` property is present and populated in your config, the overlay will trigger on card load. If `termsText` is omitted or left as an empty string, the disclaimer is bypassed entirely, booting the engine instantly into your chosen background effect.
+* **Forced Read Countdown**: You can specify a lockout duration (in seconds) via the `countdown` property. The "I AGREE" button will remain locked, showing a live counter, forcing users to wait and read the notices before proceeding.
+
+### 3. Tips for Formatting & Styling Your Terms
+Because `termsText` is defined inside a backtick (`` ` ``) template literal, you can embed rich, multi-line HTML tags directly:
+* **Styled Alerts**: Use inline styles or classes like `<em style="color: #ff9999;">` to draw attention to critical disclaimers.
+* **List Formatting**: Use standard `<ul>` and `<li style="margin-bottom: 0.75rem;">` to structure rules, instructions, or features cleanly.
+* **Logos & Badges**: Embed favicons, course logos, or badges using web links (`<img src="..." style="max-width: 64px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.4));">`) to make your deck presentation feel premium.
+* **Attribution**: Highlight contributors using emojis (`👤`, `🪄`) and neat header margins to thank deck creators.
+
+### 4. Configuration Template (`_afx_example.js`)
+
+Below is the standard configuration template showcasing all available parameters:
+
+```javascript
+window.AnkiFX_Config = {
+    deckTitle: "AnkiFX Example Deck",
+    deckAuthor: "Anonymous Creator",
+
+    // The optional disclaimer text. Remove or set to "" to skip the modal entirely.
+    termsText: `
+        <div style="text-align:center; margin-bottom: 1rem;">
+            <span style="font-size: 3rem;">🪄</span>
+        </div>
+        Welcome to the <strong>AnkiFX</strong> demonstration config. 
+        This modal is completely optional and can be used for attribution, 
+        instructions, or just a stylish welcome screen.
+        <ul style="margin-top: 1rem; padding-left: 1.5rem; text-align: left;">
+            <li>All effects are performance-optimized for mobile.</li>
+            <li>Music is provided via the Keygen Jukebox (v2).</li>
+            <li>Use the Viewport Tuner in 'debug' mode to calibrate layout.</li>
+        </ul>
+    `,
+
+    // Automatically formatted into the "Sources" section at the bottom of the terms
+    sources: [
+        "AnkiFX Core Engine",
+        "Community Effects Registry"
+    ],
+
+    // Scrolling text at the top/bottom of your screens
+    marquee: "GREETINGS FROM ANKIFX ... A MODULAR VISUAL ENGINE FOR ANKI ... TRY SWITCHING EFFECTS IN THE BOTTOM RIGHT ...",
+
+    // Default visualizer on boot (e.g. geometry, fire, aurora, julia, none)
+    defaultEffect: "geometry",
+
+    // --- OPTIONAL PREFERENCES ---
+
+    // debug: false,           // Set to true to bypass disclaimer countdowns and show the Viewport Tuner
+    // countdown: 30,          // Time in seconds the user must wait before they can click "I AGREE"
+    // marqueePosition: "top", // Position of the text ticker: "top" or "bottom"
+};
+```
+
+---
+
 ## 🎨 How to Build Your Own Effects
 
 AnkiFX is designed for extensibility. To add a new visual effect:
@@ -134,15 +202,39 @@ If you are an AI generating code for this project, you **must** adhere to these 
 
 1.  Run `npm run build`.
 2.  Copy `_ankifx.js` and your `_afx_[my_deck].js` config from `build/` to your Anki `collection.media` folder.
-3.  Ensure your card template loads the config **before** the engine, and initializes the engine with desired options:
+3.  Ensure your card template loads the config **before** the engine, and utilizes a robust, race-safe loader with a DOM readiness trigger to prevent initialization timing errors on mobile devices:
     ```html
-    <script src="_afx_my_deck.js"></script>
-    <script src="_ankifx.js"></script>
+    <script src="_afx_my_deck.js" onerror="console.error('AnkiFX Error: Failed to load config script. Verify file is present in collection.media.')"></script>
+    <script src="_ankifx.js" onerror="console.error('AnkiFX Error: Failed to load main engine. Verify file is present in collection.media.')"></script>
     <script>
-      // Initialize with optional debug flag for viewport tuning
-      AnkiFX.init({ 
-        debug: false,      // Set to true to enable the Viewport Tuner
-        countdown: 30      // Custom disclaimer countdown (seconds)
-      });
+        /**
+         * Robust AnkiFX Loader & Trigger
+         * Prevents mobile race conditions, polls for engine readiness, and manages DOM execution boundaries.
+         */
+        function triggerAnkiFX(attempts = 0) {
+            if (typeof AnkiFX !== 'undefined') {
+                try {
+                    // Initialize the engine (preferences like debug & countdown are loaded automatically from configs)
+                    AnkiFX.init();
+                    
+                    // Trigger your custom card question generators or logic here (if any):
+                    if (typeof run === 'function') run();
+                } catch (e) {
+                    console.error("AnkiFX Start Error:", e);
+                }
+            } else if (attempts < 50) { // Poll for up to 2.5 seconds to account for mobile async file delays
+                setTimeout(() => triggerAnkiFX(attempts + 1), 50);
+            } else {
+                console.error("AnkiFX Error: Loader timed out. _ankifx.js is missing or corrupt.");
+            }
+        }
+
+        // --- FINAL EXECUTION TRIGGER ---
+        // Runs immediately if DOM is already parsed; otherwise listens for readiness
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            triggerAnkiFX();
+        } else {
+            document.addEventListener('DOMContentLoaded', triggerAnkiFX);
+        }
     </script>
     ```
