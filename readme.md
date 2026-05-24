@@ -269,3 +269,18 @@ AnkiFX supports both **local media loading** and **remote CDN loading**. Since i
         }
     </script>
     ```
+
+### 📦 Packaging Assets for Deck Distribution (`.apkg`)
+
+When you export a deck as an `.apkg` file, Anki scans **only the fields of your notes** (not the card templates) to decide which media assets to package inside the archive. If a script is only referenced in the template (like `<script src="_ankifx.js"></script>`), Anki's media exporter will completely skip it, resulting in broken, static templates for anyone who imports your deck.
+
+#### The "Hidden Scanner Trick"
+To trick Anki's media scanner into packaging your local scripts (`_ankifx.js` and `_afx_my_deck.js`) into the `.apkg`:
+
+1. Create a "Readme", "Intro", or "Tutorial" card in your deck (or choose any note that exists in the deck).
+2. Edit that note, switch to **HTML editing mode** in one of the fields (like `Sources` or `Extra`), and insert an explicit, invisible image reference:
+   ```html
+   <img src="_ankifx.js" style="display:none;">
+   <img src="_afx_my_deck.js" style="display:none;">
+   ```
+3. **How it works**: Anki's media scanner detects the `src` attribute pointing to these files and packages them into the `.apkg`. When a user imports your deck, Anki automatically unpacks the scripts directly into their local `collection.media` folder. The `display:none;` styling keeps them completely invisible on the card itself!
