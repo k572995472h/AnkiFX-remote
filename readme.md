@@ -280,7 +280,7 @@ To trick Anki's media scanner into packaging your local scripts (`_ankifx.js` an
 1. Create a "Readme", "Intro", or "Tutorial" card in your deck (or choose any note that exists in the deck).
 2. Edit that note, switch to **HTML editing mode** in one of the fields (like `Sources` or `Extra`), and insert an explicit, invisible image reference:
    ```html
-   <img src="_ankifx.js" style="display:none;">
-   <img src="_afx_my_deck.js" style="display:none;">
+   <img src="_ankifx.js" style="display:none !important;">
+   <img src="_afx_my_deck.js" style="display:none !important;">
    ```
-3. **How it works**: Anki's media scanner detects the `src` attribute pointing to these files and packages them into the `.apkg`. When a user imports your deck, Anki automatically unpacks the scripts directly into their local `collection.media` folder. The `display:none;` styling keeps them completely invisible on the card itself!
+3. **How it works**: Anki's media scanner detects the `src` attribute pointing to these files and packages them into the `.apkg`. When a user imports your deck, Anki automatically unpacks the scripts directly into their local `collection.media` folder. The `display:none !important;` styling keeps them completely invisible on the card itself, guaranteeing that global CSS image styles (e.g. `img { display: block; }`) won't override it and show a broken image box!
