@@ -69,36 +69,25 @@ ankifx/
 
 ---
 
-## 🛠️ Local Development & Build System
+## 🛠️ Development & Build System
 
-The project uses `esbuild` to bundle multiple JavaScript modules and CSS into a single `_ankifx.js` file suitable for Anki's flat directory structure.
+### Getting Started
 
-### Getting Started & Running the Dev Environment
+To edit visual effects, customize layouts, or compile the codebase locally:
 
-To edit visual effects, customize layouts, or compile the codebase locally, clone this repository:
-
-1.  **Clone the repository**:
+1.  **Clone & Install**:
     ```bash
     git clone https://github.com/robkipa/ankifx.git
     cd ankifx
-    ```
-2.  **Install dependencies**:
-    ```bash
     npm install
     ```
-3.  **Run the build/watch loop**:
+2.  **Start the Compiler**:
     ```bash
     npm run watch
     ```
-    *This starts a persistent esbuild context that auto-rebuilds the engine and refreshes the effects registry whenever you save a file.*
-4.  **Preview inside the Anki Simulator**:
-    Open `build/card_front_example.html` or `build/card_back_example.html` via a local server (e.g., VS Code's Live Server extension, or `npx serve build` in your terminal) to preview effects and debug in real-time.
+3.  **Live Preview**:
+    Open `build/card_front_example.html` or `build/card_back_example.html` in your browser (e.g., using VS Code's Live Server, or `npx serve build`) to preview changes in real-time.
 
-
-### Build Pipeline Features:
-1.  **Auto-Registry**: Scans `src/effects/` and rebuilds `registry.js` automatically.
-2.  **Config Sync**: Monitors `configs/` and copies all `_afx_*.js` files to the `build/` folder.
-3.  **CSS Injection**: Styles from `afx_styles.css` are bundled as a text string and injected on engine initialization.
 
 ---
 
@@ -110,19 +99,18 @@ AnkiFX utilizes a deck-specific configuration payload to populate the attributio
 To customize AnkiFX for a specific deck:
 1. Create a new JavaScript file under `configs/` prefixed with `_afx_` (e.g., `configs/_afx_my_deck.js`).
 2. Populate it using the `window.AnkiFX_Config` object format (shown below).
-3. **Git Protection**: The build system is pre-configured to automatically discover and sync your config files into the `build/` directory for Anki media export. However, all `configs/_afx_*.js` (except `_afx_example.js`) are strictly ignored in `.gitignore`. This protects private deck questions, university course details, or proprietary content from accidentally being committed to public GitHub repositories.
+*   **Git Protection**: All files under `configs/` matching `_afx_*.js` (except the public `_afx_example.js`) are git-ignored to prevent accidental leaks of private deck credentials or course questions.
 
 ### 2. Terms Disclaimer & Countdown Lockout
-AnkiFX supports an opt-in modal overlay for licenses, terms of service, or general deck attributions:
-* **Attribution Dialog Activation**: If the `termsText` property is present and populated in your config, the overlay will trigger on card load. If `termsText` is omitted or left as an empty string, the disclaimer is bypassed entirely, booting the engine instantly into your chosen background effect.
-* **Forced Read Countdown**: You can specify a lockout duration (in seconds) via the `countdown` property. The "I AGREE" button will remain locked, showing a live counter, forcing users to wait and read the notices before proceeding.
+*   **Disclaimer Modal**: Populating `termsText` in your config triggers an overlay modal on card load. If empty, the engine boots instantly into visualizers.
+*   **Forced Read Countdown**: Specifying `countdown` (seconds) locks the "I AGREE" button, forcing users to wait and read.
 
-### 3. Tips for Formatting & Styling Your Terms
-Because `termsText` is defined inside a backtick (`` ` ``) template literal, you can embed rich, multi-line HTML tags directly:
-* **Styled Alerts**: Use inline styles or classes like `<em style="color: #ff9999;">` to draw attention to critical disclaimers.
-* **List Formatting**: Use standard `<ul>` and `<li style="margin-bottom: 0.75rem;">` to structure rules, instructions, or features cleanly.
-* **Logos & Badges**: Embed favicons, course logos, or badges using web links (`<img src="..." style="max-width: 64px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.4));">`) to make your deck presentation feel premium.
-* **Attribution**: Highlight contributors using emojis (`👤`, `🪄`) and neat header margins to thank deck creators.
+### 3. Tips for Formatting Your Terms
+Since `termsText` is a template literal, you can embed standard HTML tags:
+*   **Styled alerts**: Use `<em style="color: #ff9999;">` to draw attention to disclaimers.
+*   **Lists & Structuring**: Use standard `<ul>` and `<li>` to present guidelines.
+*   **Logos**: Embed web links (`<img src="...">`) to brand your deck visually.
+
 
 ### 4. Configuration Template (`_afx_example.js`)
 
