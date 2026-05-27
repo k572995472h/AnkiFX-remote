@@ -4,38 +4,6 @@ import { Jukebox } from './jukebox.js';
 import styles from './afx_styles.css';
 
 export class AnkiFX {
-    static getStableQuestionText(qa) {
-        if (!qa) return '';
-        const elements = qa.querySelectorAll('p, h1, h2, h3, h4, h5, h6, td, th, li');
-        let bestText = '';
-        for (const el of elements) {
-            if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') continue;
-            if (el.closest('.hidden') || el.classList.contains('hidden') || el.closest('[hidden]') || el.hasAttribute('hidden')) {
-                continue;
-            }
-            const txt = el.innerText ? el.innerText.trim() : '';
-            if (txt.length > bestText.length && txt.length < 1500) {
-                bestText = txt;
-            }
-        }
-        if (bestText.length < 5) {
-            const divs = qa.querySelectorAll('div, span');
-            for (const el of divs) {
-                if (el.closest('.hidden') || el.classList.contains('hidden') || el.closest('[hidden]') || el.hasAttribute('hidden')) {
-                    continue;
-                }
-                const txt = el.innerText ? el.innerText.trim() : '';
-                if (txt.length > bestText.length && txt.length < 1500) {
-                    bestText = txt;
-                }
-            }
-        }
-        if (bestText.length < 5) {
-            bestText = qa.innerText ? qa.innerText.trim() : '';
-        }
-        return bestText.replace(/\s+/g, ' ').trim().substring(0, 120);
-    }
-
     static init(templateOptions = {}) {
 
 
@@ -93,13 +61,7 @@ export class AnkiFX {
             }
         }
 
-        // Capture footprint of Front card
-        const qaElement = document.getElementById('qa');
-        AnkiFX.savedFrontText = AnkiFX.getStableQuestionText(qaElement);
-        console.log("AnkiFX: Saved Front Card Footprint:", { 
-            textLength: AnkiFX.savedFrontText.length,
-            text: AnkiFX.savedFrontText
-        });
+
 
         // New session / First launch: Clear old UI and reset agreed state
         document.documentElement.classList.remove('afx-scroll-lock');
@@ -178,26 +140,13 @@ export class AnkiFX {
         if (!AnkiFX.observer) {
             console.log("AnkiFX: Initializing MutationObserver for card transitions...");
             AnkiFX.observer = new MutationObserver(() => {
-                // Wait a microtask to let the new card's scripts parse
+                // Wait a microtask to let the DOM settle
                 setTimeout(() => {
                     const qa = document.getElementById('qa');
-                    const scripts = qa ? Array.from(qa.getElementsByTagName('script')) : [];
-                    const hasAnkiFX = scripts.some(s => {
-                        const src = s.getAttribute('src') || '';
-                        return src.includes('_ankifx') || src.includes('_afx_');
-                    });
+                    const hasAnkiFX = qa ? !!qa.querySelector('.ankifx-card') : false;
                     
-                    const currentText = qa ? (qa.innerText ? qa.innerText.replace(/\s+/g, ' ').trim() : '') : '';
-
-                    let matchesText = false;
-                    if (AnkiFX.savedFrontText && AnkiFX.savedFrontText.length > 3) {
-                        matchesText = currentText.includes(AnkiFX.savedFrontText);
-                    }
-
-                    const isNewCard = AnkiFX.savedFrontText && AnkiFX.savedFrontText.length > 3 ? !matchesText : true;
-                    
-                    console.log(`AnkiFX Observer triggered. Found ${scripts.length} scripts in #qa. hasAnkiFX: ${hasAnkiFX}, isNewCard: ${isNewCard}, matchesText: ${matchesText}`);
-                    if (isNewCard && !hasAnkiFX) {
+                    console.log(`AnkiFX Observer triggered. hasAnkiFX: ${hasAnkiFX}`);
+                    if (!hasAnkiFX) {
                         console.warn("AnkiFX: Transition to non-AnkiFX card detected. Destroying engine...");
                         AnkiFX.destroy();
                     }
@@ -859,8 +808,7 @@ export class AnkiFX {
             this.observer = null;
         }
 
-        // Clear footprint variables
-        AnkiFX.savedFrontText = '';
+
 
         console.warn("AnkiFX: Engine clean up complete.");
     }
@@ -895,5 +843,4 @@ AnkiFX.height = 0;
 AnkiFX.marqueeInterval = null;
 AnkiFX._layoutHandler = null;
 AnkiFX.observer = null;
-AnkiFX.savedFrontText = '';
 
