@@ -41,10 +41,10 @@
             } catch (e) {
                 console.error("AnkiFX Start Error:", e);
             }
-        } else if (attempts < 50) { // Poll for ~2.5 seconds
+        } else if (attempts < 10) { // Poll for ~500ms
             setTimeout(() => triggerAnkiFX(attempts + 1), 50);
         } else {
-            console.error("AnkiFX Error: Loader timed out after 2.5s. " +
+            console.error("AnkiFX Error: Loader timed out after 500ms. " +
                 "AnkiFX status: " + (typeof AnkiFX !== 'undefined' ? "Loaded" : "FAILED TO LOAD (_ankifx.js missing/corrupt?)") + ", " +
                 "Card Run Function status: " + (typeof run === 'function' ? "Defined" : "UNDEFINED") + ".");
         }
