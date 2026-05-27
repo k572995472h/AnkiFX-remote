@@ -25,7 +25,8 @@
         fallbackScript.onerror = function () {
             console.error("AnkiFX Critical: Both remote CDN and local fallback failed to load.");
         };
-        document.head.appendChild(fallbackScript);
+        const container = document.getElementById('qa') || document.head;
+        container.appendChild(fallbackScript);
     }
 
     /**

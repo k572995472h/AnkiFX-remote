@@ -140,13 +140,14 @@ export class AnkiFX {
             AnkiFX.observer = new MutationObserver(() => {
                 // Wait a microtask to let the new card's scripts parse
                 setTimeout(() => {
-                    const scripts = Array.from(document.getElementsByTagName('script'));
+                    const qa = document.getElementById('qa');
+                    const scripts = qa ? Array.from(qa.getElementsByTagName('script')) : [];
                     const hasAnkiFX = scripts.some(s => {
                         const src = s.getAttribute('src') || '';
                         return src.includes('_ankifx') || src.includes('_afx_');
                     });
                     
-                    console.log(`AnkiFX Observer triggered. Found ${scripts.length} scripts in DOM. hasAnkiFX: ${hasAnkiFX}`);
+                    console.log(`AnkiFX Observer triggered. Found ${scripts.length} scripts in #qa. hasAnkiFX: ${hasAnkiFX}`);
                     if (!hasAnkiFX) {
                         console.warn("AnkiFX: Transition to non-AnkiFX card detected. Destroying engine...");
                         AnkiFX.destroy();
