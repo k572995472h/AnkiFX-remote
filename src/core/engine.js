@@ -5,6 +5,7 @@ import styles from './afx_styles.css';
 
 export class AnkiFX {
     static init(templateOptions = {}) {
+        console.log("AnkiFX: Initialized.");
 
 
         // --- UNIFIED CONFIG MERGER ---
@@ -809,6 +810,8 @@ export class AnkiFX {
             this.observer.disconnect();
             this.observer = null;
         }
+
+        console.log("AnkiFX: Destroyed.");
     }
 
     static startMarqueeLoop() {
