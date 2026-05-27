@@ -382,7 +382,12 @@ export class AnkiFX {
             </div>
         `;
 
-        const hasTerms = config.termsText && config.termsText.trim() !== "";
+        let hasAgreedSession = false;
+        try {
+            hasAgreedSession = sessionStorage.getItem(`ankifx_agreed_${config.deckTitle}`) === 'true';
+        } catch (e) {}
+
+        const hasTerms = config.termsText && config.termsText.trim() !== "" && !hasAgreedSession;
         let dialogHtml = "";
 
         if (hasTerms) {
@@ -501,12 +506,12 @@ export class AnkiFX {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (!btn.disabled) {
-                    this.agree(overlay);
+                    this.agree(overlay, config.deckTitle);
                 }
             });
         } else {
             // Auto-agree if no terms
-            this.agree(overlay);
+            this.agree(overlay, config.deckTitle);
         }
 
         // Audio Bindings
@@ -710,10 +715,16 @@ export class AnkiFX {
         }
     }
 
-    static agree(overlay) {
+    static agree(overlay, deckTitle) {
         overlay.classList.add('afx-agreed-state');
         document.documentElement.classList.add('afx-agreed');
         document.documentElement.classList.remove('afx-scroll-lock');
+
+        if (deckTitle) {
+            try {
+                sessionStorage.setItem(`ankifx_agreed_${deckTitle}`, 'true');
+            } catch (e) {}
+        }
 
         // Ensure the "qa" element is above the background
         const qa = document.getElementById("qa");
