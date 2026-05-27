@@ -4,6 +4,18 @@ import { Jukebox } from './jukebox.js';
 import styles from './afx_styles.css';
 
 export class AnkiFX {
+    static getCleanFootprint(qa) {
+        if (!qa) return { text: '', html: '' };
+        const clone = qa.cloneNode(true);
+        const scripts = Array.from(clone.getElementsByTagName('script'));
+        scripts.forEach(s => s.remove());
+        const styles = Array.from(clone.getElementsByTagName('style'));
+        styles.forEach(s => s.remove());
+        const text = clone.innerText ? clone.innerText.trim() : '';
+        const html = clone.innerHTML ? clone.innerHTML.trim() : '';
+        return { text, html };
+    }
+
     static init(templateOptions = {}) {
 
 
@@ -60,6 +72,16 @@ export class AnkiFX {
                 return;
             }
         }
+
+        // Capture footprint of Front card
+        const qaElement = document.getElementById('qa');
+        const footprint = AnkiFX.getCleanFootprint(qaElement);
+        AnkiFX.savedFrontText = footprint.text;
+        AnkiFX.savedFrontHtml = footprint.html;
+        console.log("AnkiFX: Saved Front Card Footprint:", { 
+            textLength: AnkiFX.savedFrontText.length, 
+            htmlLength: AnkiFX.savedFrontHtml.length 
+        });
 
         // New session / First launch: Clear old UI and reset agreed state
         document.documentElement.classList.remove('afx-scroll-lock');
@@ -147,10 +169,27 @@ export class AnkiFX {
                         return src.includes('_ankifx') || src.includes('_afx_');
                     });
                     
-                    const isBackCard = !!(document.getElementById('answer') || document.getElementById('answer-separator'));
+                    const footprint = AnkiFX.getCleanFootprint(qa);
+                    const currentText = footprint.text;
+                    const currentHtml = footprint.html;
+
+                    let matchesText = false;
+                    let matchesHtml = false;
+
+                    if (AnkiFX.savedFrontText && AnkiFX.savedFrontText.length > 3) {
+                        matchesText = currentText.includes(AnkiFX.savedFrontText);
+                    }
+                    if (AnkiFX.savedFrontHtml && AnkiFX.savedFrontHtml.length > 5) {
+                        matchesHtml = currentHtml.includes(AnkiFX.savedFrontHtml);
+                    }
+
+                    const hasSavedFootprint = (AnkiFX.savedFrontText && AnkiFX.savedFrontText.length > 3) || 
+                                               (AnkiFX.savedFrontHtml && AnkiFX.savedFrontHtml.length > 5);
+
+                    const isNewCard = hasSavedFootprint ? (!matchesText && !matchesHtml) : true;
                     
-                    console.log(`AnkiFX Observer triggered. Found ${scripts.length} scripts in #qa. hasAnkiFX: ${hasAnkiFX}, isBackCard: ${isBackCard}`);
-                    if (!hasAnkiFX && !isBackCard) {
+                    console.log(`AnkiFX Observer triggered. Found ${scripts.length} scripts in #qa. hasAnkiFX: ${hasAnkiFX}, isNewCard: ${isNewCard}, matchesText: ${matchesText}, matchesHtml: ${matchesHtml}`);
+                    if (isNewCard && !hasAnkiFX) {
                         console.warn("AnkiFX: Transition to non-AnkiFX card detected. Destroying engine...");
                         AnkiFX.destroy();
                     }
@@ -811,6 +850,11 @@ export class AnkiFX {
             this.observer.disconnect();
             this.observer = null;
         }
+
+        // Clear footprint variables
+        AnkiFX.savedFrontText = '';
+        AnkiFX.savedFrontHtml = '';
+
         console.warn("AnkiFX: Engine clean up complete.");
     }
 
@@ -844,4 +888,6 @@ AnkiFX.height = 0;
 AnkiFX.marqueeInterval = null;
 AnkiFX._layoutHandler = null;
 AnkiFX.observer = null;
+AnkiFX.savedFrontText = '';
+AnkiFX.savedFrontHtml = '';
 
