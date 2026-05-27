@@ -788,6 +788,21 @@ export class AnkiFX {
             if (el) el.remove();
         });
 
+        // Clean up injected stylesheets
+        const styleEl = document.getElementById('ankifx-styles');
+        if (styleEl) {
+            console.log("AnkiFX: Removing injected stylesheet 'ankifx-styles'");
+            styleEl.remove();
+        }
+
+        // Clean up inline styles from html and qa
+        document.documentElement.style.removeProperty('--tuner-height');
+        const qa = document.getElementById('qa');
+        if (qa) {
+            qa.style.position = '';
+            qa.style.zIndex = '';
+        }
+
         // Clean up HTML/body classes
         console.log("AnkiFX: Cleaning up CSS classes from document element");
         document.documentElement.classList.remove('afx-scroll-lock');
