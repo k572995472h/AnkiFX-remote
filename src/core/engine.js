@@ -147,8 +147,10 @@ export class AnkiFX {
                         return src.includes('_ankifx') || src.includes('_afx_');
                     });
                     
-                    console.log(`AnkiFX Observer triggered. Found ${scripts.length} scripts in #qa. hasAnkiFX: ${hasAnkiFX}`);
-                    if (!hasAnkiFX) {
+                    const isBackCard = !!(document.getElementById('answer') || document.getElementById('answer-separator'));
+                    
+                    console.log(`AnkiFX Observer triggered. Found ${scripts.length} scripts in #qa. hasAnkiFX: ${hasAnkiFX}, isBackCard: ${isBackCard}`);
+                    if (!hasAnkiFX && !isBackCard) {
                         console.warn("AnkiFX: Transition to non-AnkiFX card detected. Destroying engine...");
                         AnkiFX.destroy();
                     }
