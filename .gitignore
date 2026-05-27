@@ -1,6 +1,7 @@
 node_modules/
 build/*
 !build/card templates/
+!build/_ankifx.js
 .DS_Store
 *.log
 .gemini/

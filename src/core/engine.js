@@ -133,6 +133,19 @@ export class AnkiFX {
         if (this.marquee) {
             this.marquee.enabled = marqueeEnabled;
         }
+
+        // Setup observer to auto-detect transition to non-AnkiFX cards
+        if (!this.observer) {
+            this.observer = new MutationObserver(() => {
+                // Wait a microtask to let the new card's scripts parse
+                setTimeout(() => {
+                    if (!document.getElementById('ankifx-engine-script') && !document.getElementById('ankifx-overlay')) {
+                        this.destroy();
+                    }
+                }, 20);
+            });
+            this.observer.observe(document.documentElement, { childList: true, subtree: true });
+        }
     }
 
 
@@ -734,6 +747,52 @@ export class AnkiFX {
         }
     }
 
+    static destroy() {
+        // Stop current effect
+        if (this.currentEffectId && EFFECTS[this.currentEffectId]?.stop) {
+            EFFECTS[this.currentEffectId].stop();
+        }
+
+        // Stop jukebox
+        if (this.jukebox) {
+            this.jukebox.stop();
+            this.jukebox = null;
+        }
+
+        // Stop marquee loop
+        if (this.marqueeInterval) {
+            cancelAnimationFrame(this.marqueeInterval);
+            this.marqueeInterval = null;
+        }
+        if (this.marquee) {
+            this.marquee = null;
+        }
+
+        // Clean up DOM elements
+        ['ankifx-overlay', 'ankifx-background', 'afx-tuner-ui', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
+
+        // Clean up HTML/body classes
+        document.documentElement.classList.remove('afx-scroll-lock');
+        document.documentElement.classList.remove('afx-agreed');
+        Array.from(document.documentElement.classList).forEach(c => {
+            if (c.startsWith('afx-effect-')) {
+                document.documentElement.classList.remove(c);
+            }
+        });
+
+        // Clean up window references
+        window.AnkiFX_Config = null;
+
+        // Disconnect observer
+        if (this.observer) {
+            this.observer.disconnect();
+            this.observer = null;
+        }
+    }
+
     static startMarqueeLoop() {
         if (this.marqueeInterval) return;
 
@@ -763,4 +822,5 @@ AnkiFX.width = 0;
 AnkiFX.height = 0;
 AnkiFX.marqueeInterval = null;
 AnkiFX._layoutHandler = null;
+AnkiFX.observer = null;
 
