@@ -14,8 +14,8 @@ Now, the project is open to the public so anyone can inject stunning, high-perfo
 ### Core Features
 *   **Unified Canvas Architecture**: Uses a persistent, HDPi-compliant `WebGL` and `Canvas2D` context system. Background effects switch instantly without recreating the canvas or losing study focus.
 *   **Dynamic Effect Registry**: Effects are auto-discovered during the build process and registered via an auto-generated `registry.js`. Adding a new effect is as simple as dropping a `.js` file into `src/effects/`.
-*   **Viewport Tuner System**: A real-time layout debugger designed to solve iOS/AnkiMobile viewport height and offset issues. Adjust the `--tuner-height` dynamically to ensure edge-to-edge rendering behind Anki's native UI bars.
-    *   **Debug Mode**: The tuner requires setting `debug: true` in your deck configuration payload and selecting the `Debug` effect in the UI.
+*   **Auto-Maximizing Viewport Sizing**: An engine-level auto-calibration system designed to solve complex iOS/AnkiMobile viewport height and offset issues. It dynamically adjusts the `--tuner-height` CSS variable based on the native `--io-header` to guarantee perfect edge-to-edge rendering behind Anki's native UI bars.
+    *   **Debug Mode**: Setting `debug: true` in your deck configuration payload displays a styled **Clear Storage** button directly inside the control deck (above the effect picker, visible only when the 'Debug' effect is active) to clear your local storage preferences in one tap.
 *   **Canvas Visualizers**: Eleven high-performance background effects:
     *   *Aurora*: Organic, noise-based northern lights simulation (optimized for mobile).
     *   *Fire*: Classic demoscene doom-fire simulation.
@@ -132,7 +132,7 @@ window.AnkiFX_Config = {
         <ul style="margin-top: 1rem; padding-left: 1.5rem; text-align: left;">
             <li>All effects are performance-optimized for mobile.</li>
             <li>Music is provided via the Keygen Jukebox (v2).</li>
-            <li>Use the Viewport Tuner in 'debug' mode to calibrate layout.</li>
+            <li>Toggle debug: true in configs to reveal developer clear-storage utilities.</li>
         </ul>
     `,
 
@@ -150,7 +150,7 @@ window.AnkiFX_Config = {
 
     // --- OPTIONAL PREFERENCES ---
 
-    // debug: false,           // Set to true to bypass disclaimer countdowns and show the Viewport Tuner
+    // debug: false,           // Set to true to bypass disclaimer countdowns and reveal developer utilities (like Clear Storage)
     // countdown: 30,          // Time in seconds the user must wait before they can click "I AGREE"
     // marqueePosition: "top", // Position of the text ticker: "top" or "bottom"
 };

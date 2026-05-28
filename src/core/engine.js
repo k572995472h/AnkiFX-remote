@@ -163,56 +163,14 @@ export class AnkiFX {
     }
 
     static initTuner(debug, activeEffect) {
-        if (!debug) return;
-        if (document.getElementById('afx-tuner-ui')) return;
-
-        const tuner = document.createElement('div');
-        tuner.id = 'afx-tuner-ui';
-
-        // Only show if debug effect is active
-        if (activeEffect === 'debug') tuner.classList.add('active');
-
+        // Even if we don't show the tuner UI, we still run the layout adjustments
         const savedOffset = localStorage.getItem('ankifx_tuner_offset');
         const style = getComputedStyle(document.documentElement);
         const header = parseInt(style.getPropertyValue('--io-header')) || 0;
 
-        // If never touched, default to -header
         const initialOffset = savedOffset !== null ? parseInt(savedOffset) : -header;
+        this.tunerOffset = initialOffset;
         this.tunerAutoUpdate = savedOffset === null;
-
-        tuner.innerHTML = `
-            <div style="font-weight: bold; color: #ff00ff; margin-bottom: 5px;">VIEWPORT TUNER</div>
-            <input type="range" id="afx-tuner-range" min="-300" max="300" value="${initialOffset}">
-            <div style="margin: 5px 0 10px;">OFFSET: <span id="afx-tuner-offset-val" class="val">0</span>px</div>
-            <div style="font-size: 10px; opacity: 0.7; margin-bottom: 15px; line-height: 1.4;">
-                IO-HEADER: <span id="afx-tuner-header-val">0</span>px<br>
-                TOTAL ADJ: <span id="afx-tuner-total-val" class="val">0</span>px
-            </div>
-            <button id="afx-debug-clear-storage" style="display: block; width: 100%; background: #441111; color: #ff5555; border: 1px solid #ff5555; font-family: 'Courier New', monospace; padding: 8px; cursor: pointer; border-radius: 8px; font-size: 11px; font-weight: bold; box-sizing: border-box; transition: 0.2s;">CLEAR LOCALSTORAGE</button>
-        `;
-        document.body.appendChild(tuner);
-
-        // --- TUNER PROPAGATION STOPPER ---
-        ['touchstart', 'touchend', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(evt => {
-            tuner.addEventListener(evt, (e) => e.stopPropagation(), { passive: false });
-        });
-
-        const slider = document.getElementById('afx-tuner-range');
-        slider.oninput = () => {
-            this.tunerAutoUpdate = false;
-            localStorage.setItem('ankifx_tuner_offset', slider.value);
-            this.updateTuner();
-        };
-
-        const clearBtn = document.getElementById('afx-debug-clear-storage');
-        if (clearBtn) {
-            clearBtn.onclick = () => {
-                if (confirm('Clear ALL AnkiFX local storage?')) {
-                    localStorage.clear();
-                    location.reload();
-                }
-            };
-        }
 
         // Initial update
         this.updateTuner();
@@ -225,7 +183,7 @@ export class AnkiFX {
             if (currentHeader !== lastHeader) {
                 lastHeader = currentHeader;
                 if (this.tunerAutoUpdate) {
-                    slider.value = -currentHeader;
+                    this.tunerOffset = -currentHeader;
                 }
                 this.updateTuner();
             }
@@ -238,22 +196,12 @@ export class AnkiFX {
     }
 
     static updateTuner() {
-        const slider = document.getElementById('afx-tuner-range');
-        const offsetVal = document.getElementById('afx-tuner-offset-val');
-        const headerVal = document.getElementById('afx-tuner-header-val');
-        const totalVal = document.getElementById('afx-tuner-total-val');
-
-        if (!slider) return;
-
-        const offset = parseInt(slider.value);
-        offsetVal.innerText = offset >= 0 ? `+${offset}` : offset;
-
+        const savedOffset = localStorage.getItem('ankifx_tuner_offset');
         const style = getComputedStyle(document.documentElement);
         const header = parseInt(style.getPropertyValue('--io-header')) || 0;
-        headerVal.innerText = header;
-
+        
+        const offset = this.tunerOffset !== undefined ? this.tunerOffset : (savedOffset !== null ? parseInt(savedOffset) : -header);
         const total = offset + header;
-        totalVal.innerText = total;
 
         document.documentElement.style.setProperty('--tuner-height', `calc(100dvh + ${total}px)`);
 
@@ -393,9 +341,21 @@ export class AnkiFX {
             </div>
         `;
 
+        let clearStorageHtml = "";
+        if (config.debug) {
+            clearStorageHtml = `
+                <div id="afx-clear-storage-container" class="afx-control-row afx-effect-selector-container" style="padding: 0; border: 1px solid rgba(255, 85, 85, 0.4); display: ${activeEffect === 'debug' ? 'flex' : 'none'};">
+                    <button id="afx-debug-clear-storage" style="background: transparent; color: #ff5555; border: none; width: 100%; height: 100%; cursor: pointer; text-transform: uppercase; font-family: 'Courier New', Courier, monospace !important; font-size: var(--afx-picker-font-size) !important; font-weight: bold !important; padding: 0 10px; display: flex; align-items: center; justify-content: center; width: 100%;">
+                        🧹 CLEAR STORAGE
+                    </button>
+                </div>
+            `;
+        }
+
         let pickerStackHtml = `
             <div id="afx-controls-stack-right" class="afx-controls-stack">
                 ${juliaSelectorHtml}
+                ${clearStorageHtml}
                 ${effectSelectorHtml}
             </div>
         `;
@@ -627,19 +587,20 @@ export class AnkiFX {
                 }
 
                 config.defaultEffect = newEffect;
-                const tuner = document.getElementById('afx-tuner-ui');
-
                 // Toggle sub-pickers
                 if (juliaSelectorContainer) {
                     juliaSelectorContainer.style.display = newEffect === 'julia' ? 'flex' : 'none';
                 }
 
+                const clearStorageContainer = document.getElementById('afx-clear-storage-container');
+                if (clearStorageContainer) {
+                    clearStorageContainer.style.display = newEffect === 'debug' ? 'flex' : 'none';
+                }
+
                 if (newEffect === 'debug') {
                     overlay.classList.add('afx-debug-active');
-                    if (tuner) tuner.classList.add('active');
                 } else {
                     overlay.classList.remove('afx-debug-active');
-                    if (tuner) tuner.classList.remove('active');
                 }
                 AnkiFX.startEffect(config, background, config.marqueePosition, newEffect);
 
@@ -684,6 +645,18 @@ export class AnkiFX {
                     AnkiFX.startEffect(config, background, config.marqueePosition, 'julia');
                 }
 
+            });
+        }
+
+        // Clear LocalStorage Binding
+        const clearBtn = document.getElementById('afx-debug-clear-storage');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('Clear ALL AnkiFX local storage?')) {
+                    localStorage.clear();
+                    location.reload();
+                }
             });
         }
 

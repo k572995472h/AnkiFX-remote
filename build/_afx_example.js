@@ -14,7 +14,7 @@ window.AnkiFX_Config = {
         <ul style="margin-top: 1rem; padding-left: 1.5rem; text-align: left;">
             <li>All effects are performance-optimized for mobile.</li>
             <li>Music is provided via the Keygen Jukebox (v2).</li>
-            <li>Use the Viewport Tuner in 'debug' mode to calibrate layout.</li>
+            <li>Toggle debug: true in configs to reveal developer clear-storage utilities.</li>
         </ul>
     `,
 
@@ -29,7 +29,7 @@ window.AnkiFX_Config = {
 
     // --- OPTIONAL PREFERENCES ---
 
-    // debug: false,           // Set to true to bypass disclaimer countdowns and show the Viewport Tuner
+    // debug: false,           // Set to true to bypass disclaimer countdowns and reveal developer utilities (like Clear Storage)
     // countdown: 30,          // Time in seconds the user must wait before they can click "I AGREE" on the terms disclaimer (if termsText is active)
     // marqueePosition: "top", // Position of the text ticker: "top" or "bottom"
 };
