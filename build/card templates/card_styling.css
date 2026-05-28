@@ -10,9 +10,14 @@ body {
     font-family: arial;
     font-size: 20px;
     text-align: center;
-    padding: 15px; /* Added padding to prevent text touching borders */
-    box-sizing: border-box;
     margin: 0;
+    padding: 0;
+}
+
+/* Prevent card content from touching the edges of the screen while keeping the background canvas full-screen */
+#qa {
+    padding: 15px !important;
+    box-sizing: border-box !important;
 }
 
 .small {
@@ -30,9 +35,9 @@ th {
 table {
     display: inline-block;
     text-align: left;
-    background-color: rgba(0, 0, 0, 0.4); /* Slightly lightened for better contrast on effects */
+    background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent dark background */
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 table tr,
