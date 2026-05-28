@@ -9,39 +9,82 @@
 <script>
     // Closure-scoped flags to prevent duplicate execution within the same card's lifecycle
     var fallbackLoaded = false;
-    var cardInitialized = false;
+    var contentInitialized = false;
+    var ankiFXInitialized = false;
 
-    // Fallback logic: If the CDN is offline or blocked, load the local collection.media copy
+    // Optional Eruda mobile console debugger in debug mode
+    function loadEruda() {
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (window.AnkiFX_Config && window.AnkiFX_Config.debug && isMobileDevice && !window.eruda) {
+            const erudaScript = document.createElement('script');
+            erudaScript.src = "https://cdn.jsdelivr.net/npm/eruda";
+            erudaScript.onload = function () {
+                eruda.init();
+            };
+            document.head.appendChild(erudaScript);
+        }
+    }
+
+    // Fallback logic: If the CDN is offline or blocked, load the local collection.media copy via text fetch (bypass iOS WebView sandbox)
     function loadAnkiFXFallback() {
         if (fallbackLoaded) return;
         fallbackLoaded = true;
         console.warn("AnkiFX: Remote CDN offline or device offline. Falling back to local collection.media engine...");
-        const fallbackScript = document.createElement('script');
-        fallbackScript.src = "_ankifx.js"; // Local backup
-        fallbackScript.onload = function () {
-            triggerAnkiFX();
-        };
-        fallbackScript.onerror = function () {
-            console.error("AnkiFX Critical: Both remote CDN and local fallback failed to load.");
-        };
-        const container = document.getElementById('qa') || document.head;
-        container.appendChild(fallbackScript);
+
+        // Try fetching first (highly reliable on mobile webviews)
+        fetch("_ankifx.js")
+            .then(function(response) {
+                if (!response.ok) throw new Error("Local file not found");
+                return response.text();
+            })
+            .then(function(code) {
+                const script = document.createElement('script');
+                script.textContent = code; // Inject as inline script to bypass WKWebView path sandboxing
+                document.head.appendChild(script);
+                triggerAnkiFX();
+            })
+            .catch(function(err) {
+                // If fetch fails (e.g. CORS block under file:// in desktop browsers), fall back to standard script tag insertion
+                console.warn("Fetch fallback failed (possibly browser CORS), trying standard script insertion...", err);
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = "_ankifx.js";
+                fallbackScript.onload = function () {
+                    triggerAnkiFX();
+                };
+                fallbackScript.onerror = function () {
+                    console.error("AnkiFX Critical: Both remote CDN and local fallback failed to load.");
+                    // Even if both fail, run the card content so the student can study!
+                    triggerAnkiFX();
+                };
+                const container = document.getElementById('qa') || document.head;
+                container.appendChild(fallbackScript);
+            });
     }
 
     /**
-     * AnkiFX Loader
-     * Simplified initialization to prevent race conditions and ensure DOM readiness.
+     * Resilient AnkiFX Loader
+     * Always populates MCQ questions and options immediately so the card remains fully functional for study,
+     * and progressively enhances it with AnkiFX visualizers once loaded.
      */
     function triggerAnkiFX() {
-        if (cardInitialized) return;
-        if (typeof AnkiFX !== 'undefined' && typeof run === 'function') {
-            cardInitialized = true;
+        // 1. Load eruda if in debug mode on mobile
+        loadEruda();
+
+        // 2. Always run the card's native content/table generator immediately so the user can study
+        if (!contentInitialized && typeof run === 'function') {
             try {
-                AnkiFX.init();
+                contentInitialized = true;
                 run();
-                if (isMobile()) {
-                    if (typeof showConsentOverlay === 'function') showConsentOverlay();
-                }
+            } catch (e) {
+                console.error("Card Content Run Error:", e);
+            }
+        }
+
+        // 3. Only initialize AnkiFX if it is loaded
+        if (!ankiFXInitialized && typeof AnkiFX !== 'undefined') {
+            try {
+                ankiFXInitialized = true;
+                AnkiFX.init();
             } catch (e) {
                 console.error("AnkiFX Start Error:", e);
             }
