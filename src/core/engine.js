@@ -1,3 +1,7 @@
+// Capture the current script element immediately at module load time.
+// In esbuild's IIFE output, this runs first — before document.currentScript becomes null.
+const __ankifx_currentScript = document.currentScript;
+
 import { EFFECTS } from '../effects/registry.js';
 import { Marquee } from '../effects/marquee.js';
 import { Jukebox } from './jukebox.js';
@@ -820,8 +824,8 @@ AnkiFX.observer = null;
 let detectedSource = 'local';
 try {
     let scriptUrl = '';
-    if (document.currentScript && document.currentScript.src) {
-        scriptUrl = document.currentScript.src;
+    if (__ankifx_currentScript && __ankifx_currentScript.src) {
+        scriptUrl = __ankifx_currentScript.src;
     } else {
         const stack = new Error().stack || '';
         const matches = stack.match(/(https?:\/\/[^\s)\n:]+|file:\/\/[^\s)\n:]+)/g);

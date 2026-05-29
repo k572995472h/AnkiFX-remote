@@ -1,8 +1,8 @@
 
 let animationId = null;
 let currentW, currentH;
-let erudaBlockListener = null;
-const blockEvents = ['click', 'touchend', 'mouseup', 'pointerup'];
+let erudaCaptureListener = null;
+const captureEvents = ['touchstart', 'touchend', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'];
 
 function isErudaEvent(e) {
     if (!e) return false;
@@ -62,15 +62,18 @@ export function runDebug(contexts, config) {
             erudaContainer.style.display = 'block';
         }
 
-        // Register global block listener to prevent event leaking to Anki card flip
-        if (!erudaBlockListener) {
-            erudaBlockListener = (e) => {
+        // Capture-phase document listener: fires BEFORE any other handler,
+        // catches Eruda events and prevents them from reaching the overlay
+        // or Anki's card flip handler
+        if (!erudaCaptureListener) {
+            erudaCaptureListener = (e) => {
                 if (isErudaEvent(e)) {
                     e.stopPropagation();
+                    e.stopImmediatePropagation();
                 }
             };
-            blockEvents.forEach(evtName => {
-                document.body.addEventListener(evtName, erudaBlockListener, { capture: false, passive: false });
+            captureEvents.forEach(evtName => {
+                document.addEventListener(evtName, erudaCaptureListener, { capture: true, passive: false });
             });
         }
 
@@ -85,6 +88,23 @@ export function runDebug(contexts, config) {
                         });
                         window.__ERUDA_INITIALIZED__ = true;
                         window.eruda.position({ x: 20, y: 20 });
+
+                        // Force pointer-events on Eruda's shadow DOM entry button
+                        // so taps reach it despite the container being pointer-events: none
+                        try {
+                            const shadowRoot = erudaContainer.querySelector('eruda')?.shadowRoot
+                                || erudaContainer.shadowRoot;
+                            if (shadowRoot) {
+                                const style = document.createElement('style');
+                                style.textContent = `
+                                    .eruda-entry-btn { pointer-events: auto !important; touch-action: manipulation !important; }
+                                    .eruda-container { pointer-events: auto !important; }
+                                `;
+                                shadowRoot.appendChild(style);
+                            }
+                        } catch (styleErr) {
+                            console.warn("Eruda: Could not inject pointer-events override:", styleErr);
+                        }
 
                         // Flush all pre-load logs into the Eruda console panel
                         if (window.AnkiFX_Loader_Logs && !window.__ERUDA_LOGS_FLUSHED__) {
@@ -215,10 +235,10 @@ export function stopDebug() {
     if (erudaContainer) {
         erudaContainer.style.display = 'none';
     }
-    if (erudaBlockListener) {
-        blockEvents.forEach(evtName => {
-            document.body.removeEventListener(evtName, erudaBlockListener, { capture: false });
+    if (erudaCaptureListener) {
+        captureEvents.forEach(evtName => {
+            document.removeEventListener(evtName, erudaCaptureListener, { capture: true });
         });
-        erudaBlockListener = null;
+        erudaCaptureListener = null;
     }
 }
