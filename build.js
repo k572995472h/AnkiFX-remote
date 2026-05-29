@@ -1,3 +1,4 @@
+// ⚡ Automated Git Versioning Bundle Compiler
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
