@@ -23,7 +23,28 @@ export function runDebug(contexts, config) {
     currentW = contexts.width;
     currentH = contexts.height;
 
-    currentH = contexts.height;
+    // Load/show Eruda on mobile inside the DEBUG effect
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+        if (!window.eruda) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+            script.onload = () => {
+                if (window.eruda) {
+                    window.eruda.init();
+                    window.eruda.position({ x: 20, y: 20 });
+                    window.eruda.show();
+                }
+            };
+            document.head.appendChild(script);
+        } else {
+            try {
+                window.eruda.init();
+                window.eruda.position({ x: 20, y: 20 });
+                window.eruda.show();
+            } catch(e) {}
+        }
+    }
 
     function render() {
         ctx.fillStyle = '#000';
@@ -121,5 +142,8 @@ export function stopDebug() {
     if (animationId) {
         cancelAnimationFrame(animationId);
         animationId = null;
+    }
+    if (window.eruda) {
+        try { window.eruda.hide(); } catch(e) {}
     }
 }

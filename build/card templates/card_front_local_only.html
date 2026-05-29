@@ -22,7 +22,8 @@
     // Optional Eruda mobile console debugger in debug mode
     function loadEruda() {
         const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (window.AnkiFX_Config && window.AnkiFX_Config.debug && isMobileDevice && !window.eruda) {
+        if (window.AnkiFX_Config && window.AnkiFX_Config.debug && isMobileDevice && !window.eruda && !window.erudaLoadingStarted) {
+            window.erudaLoadingStarted = true;
             window.AnkiFX_Loader_Logs.push("Loading Eruda mobile debugger...");
             const erudaScript = document.createElement('script');
             erudaScript.src = "https://cdn.jsdelivr.net/npm/eruda";
@@ -31,6 +32,7 @@
                 window.AnkiFX_Loader_Logs.push("Eruda initialized.");
             };
             erudaScript.onerror = function () {
+                window.erudaLoadingStarted = false;
                 window.AnkiFX_Loader_Logs.push("Eruda failed to load.");
             };
             document.head.appendChild(erudaScript);
@@ -45,8 +47,10 @@
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
         if (attempts === 0) {
             window.AnkiFX_Loader_Logs.push("triggerAnkiFX called.");
-            loadEruda();
         }
+        
+        // Continuously attempt to load Eruda as soon as config is resolved
+        loadEruda();
 
         const hasAnkiFX = typeof AnkiFX !== 'undefined';
         const hasRun = typeof run === 'function';
