@@ -51,20 +51,7 @@
         // 1. Load eruda if in debug mode on mobile
         loadEruda();
 
-        // 2. Always run the card's native content/table generator immediately so the user can study
-        if (!contentInitialized && typeof run === 'function') {
-            try {
-                window.AnkiFX_Loader_Logs.push("Running card content run()...");
-                contentInitialized = true;
-                run();
-                window.AnkiFX_Loader_Logs.push("Card content run() success.");
-            } catch (e) {
-                window.AnkiFX_Loader_Logs.push("Card content error: " + e.message);
-                console.error("Card Content Run Error:", e);
-            }
-        }
-
-        // 3. Only initialize AnkiFX if it is loaded
+        // 2. Initialize AnkiFX first if loaded
         if (!ankiFXInitialized && typeof AnkiFX !== 'undefined') {
             try {
                 window.AnkiFX_Loader_Logs.push("Initializing AnkiFX engine (Source: " + AnkiFX.source + ", Version: " + AnkiFX.version + ")...");
@@ -77,6 +64,19 @@
             }
         } else if (typeof AnkiFX === 'undefined') {
             window.AnkiFX_Loader_Logs.push("AnkiFX not defined at trigger time.");
+        }
+
+        // 3. Then run the card's native content/table generator
+        if (!contentInitialized && typeof run === 'function') {
+            try {
+                window.AnkiFX_Loader_Logs.push("Running card content run()...");
+                contentInitialized = true;
+                run();
+                window.AnkiFX_Loader_Logs.push("Card content run() success.");
+            } catch (e) {
+                window.AnkiFX_Loader_Logs.push("Card content error: " + e.message);
+                console.error("Card Content Run Error:", e);
+            }
         }
     }
 </script>
