@@ -69,7 +69,7 @@ export class AnkiFX {
         document.documentElement.classList.remove('afx-agreed');
 
         // Remove existing elements to prevent duplicates
-        ['ankifx-overlay', 'ankifx-background', 'afx-tuner-ui', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
+        ['ankifx-overlay', 'ankifx-background', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.remove();
         });
@@ -747,7 +747,7 @@ export class AnkiFX {
         }
 
         // Clean up DOM elements
-        ['ankifx-overlay', 'ankifx-background', 'afx-tuner-ui', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
+        ['ankifx-overlay', 'ankifx-background', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.remove();
         });
