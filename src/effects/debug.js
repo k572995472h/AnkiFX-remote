@@ -26,23 +26,59 @@ export function runDebug(contexts, config) {
     // Load/show Eruda on mobile inside the DEBUG effect
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile) {
+        let erudaContainer = document.getElementById('ankifx-eruda-container');
+        if (!erudaContainer) {
+            erudaContainer = document.createElement('div');
+            erudaContainer.id = 'ankifx-eruda-container';
+            erudaContainer.style.position = 'fixed';
+            erudaContainer.style.zIndex = '2147483647';
+            erudaContainer.style.top = '0';
+            erudaContainer.style.left = '0';
+            erudaContainer.style.width = '100%';
+            erudaContainer.style.height = '100%';
+            erudaContainer.style.pointerEvents = 'none';
+            document.body.appendChild(erudaContainer);
+
+            // Stop all event propagation from Eruda to prevent card flipping in Anki
+            const blockEvents = ['click', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'touchmove', 'pointerdown', 'pointerup'];
+            blockEvents.forEach(evtName => {
+                erudaContainer.addEventListener(evtName, (e) => {
+                    e.stopPropagation();
+                }, { capture: true, passive: false });
+            });
+        } else {
+            erudaContainer.style.display = 'block';
+        }
+
+        const initEruda = () => {
+            if (window.eruda) {
+                try {
+                    window.eruda.init({
+                        container: erudaContainer,
+                        useShadowDom: true
+                    });
+                    window.eruda.position({ x: 20, y: 20 });
+                    window.eruda.show();
+
+                    // Flush all pre-load logs into the Eruda console panel
+                    if (window.AnkiFX_Loader_Logs) {
+                        window.AnkiFX_Loader_Logs.forEach(log => {
+                            console.log("[Pre-load] " + log);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Eruda init error:", e);
+                }
+            }
+        };
+
         if (!window.eruda) {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-            script.onload = () => {
-                if (window.eruda) {
-                    window.eruda.init();
-                    window.eruda.position({ x: 20, y: 20 });
-                    window.eruda.show();
-                }
-            };
+            script.onload = initEruda;
             document.head.appendChild(script);
         } else {
-            try {
-                window.eruda.init();
-                window.eruda.position({ x: 20, y: 20 });
-                window.eruda.show();
-            } catch(e) {}
+            initEruda();
         }
     }
 
@@ -145,5 +181,9 @@ export function stopDebug() {
     }
     if (window.eruda) {
         try { window.eruda.hide(); } catch(e) {}
+    }
+    const erudaContainer = document.getElementById('ankifx-eruda-container');
+    if (erudaContainer) {
+        erudaContainer.style.display = 'none';
     }
 }
