@@ -14,6 +14,32 @@
 <script id="ankifx-engine-script" src="https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js" onerror="console.warn('AnkiFX: CDN failed to load, using local engine.')"></script>
 
 <script>
+    (function() {
+        window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+        var remoteScript = document.getElementById('ankifx-engine-script');
+        if (remoteScript) {
+            if (window.AnkiFX && window.AnkiFX.source === 'remote') {
+                window.AnkiFX_Remote_Status = "loaded";
+                window.AnkiFX_Loader_Logs.push("Remote engine script loaded (sync).");
+            } else {
+                window.AnkiFX_Remote_Status = "pending";
+                window.AnkiFX_Loader_Logs.push("Remote engine script pending...");
+                remoteScript.addEventListener('load', function() {
+                    window.AnkiFX_Remote_Status = "loaded";
+                    window.AnkiFX_Loader_Logs.push("Remote engine script onload fired (async).");
+                    if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
+                });
+                remoteScript.addEventListener('error', function() {
+                    window.AnkiFX_Remote_Status = "failed";
+                    window.AnkiFX_Loader_Logs.push("Remote engine script onerror fired (async).");
+                    if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
+                });
+            }
+        }
+    })();
+</script>
+
+<script>
     // Initialize global loader logs
     window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
     window.AnkiFX_Loader_Logs.push("Template loaded.");
@@ -32,10 +58,22 @@
             window.AnkiFX_Loader_Logs.push("triggerAnkiFX called.");
         }
 
+        const remoteScriptExists = !!document.getElementById('ankifx-engine-script');
+        const remoteStatus = window.AnkiFX_Remote_Status || (remoteScriptExists ? "pending" : "none");
+
         const hasAnkiFX = typeof AnkiFX !== 'undefined';
         const hasRun = typeof run === 'function';
 
         if (hasAnkiFX && hasRun) {
+            // Wait for remote engine to finish loading or fail (up to 800ms)
+            const isWaitingForRemote = (remoteStatus === "pending") && (attempts < 16);
+            if (isWaitingForRemote) {
+                if (attempts % 5 === 0) {
+                    window.AnkiFX_Loader_Logs.push("Waiting for remote script (Attempt " + attempts + ", status=" + remoteStatus + ")...");
+                }
+                setTimeout(() => triggerAnkiFX(attempts + 1), 50);
+                return;
+            }
             // 1. First initialize AnkiFX if it is loaded
             if (!ankiFXInitialized) {
                 try {

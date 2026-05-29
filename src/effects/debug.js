@@ -44,7 +44,7 @@ export function runDebug(contexts, config) {
             blockEvents.forEach(evtName => {
                 erudaContainer.addEventListener(evtName, (e) => {
                     e.stopPropagation();
-                }, { capture: true, passive: false });
+                }, { capture: false, passive: false });
             });
         } else {
             erudaContainer.style.display = 'block';
