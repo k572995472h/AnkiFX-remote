@@ -817,8 +817,23 @@ AnkiFX.height = 0;
 AnkiFX.marqueeInterval = null;
 AnkiFX._layoutHandler = null;
 AnkiFX.observer = null;
+let detectedSource = 'local';
+try {
+    if (document.currentScript && document.currentScript.src) {
+        const srcUrl = document.currentScript.src;
+        if (srcUrl.includes('cdn.jsdelivr.net') || srcUrl.includes('github') || srcUrl.includes('rawgit')) {
+            detectedSource = 'remote';
+        } else {
+            detectedSource = 'local';
+        }
+    }
+} catch (e) {
+    detectedSource = 'detection-failed';
+}
+
 AnkiFX.version = process.env.ANKIFX_VERSION || '1.0.0-dev';
 AnkiFX.buildDate = process.env.BUILD_DATE || 'development';
-AnkiFX.source = 'unknown';
+AnkiFX.source = detectedSource;
+
 
 
