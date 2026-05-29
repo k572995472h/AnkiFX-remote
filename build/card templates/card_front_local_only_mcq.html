@@ -50,7 +50,7 @@
                 try {
                     window.AnkiFX_Loader_Logs.push("Initializing AnkiFX engine (Source: " + (AnkiFX.source || 'local') + ", Version: " + (AnkiFX.version || '1.0.0') + ")...");
                     ankiFXInitialized = true;
-                    AnkiFX.init({ debug: true });
+                    AnkiFX.init();
                     window.AnkiFX_Loader_Logs.push("AnkiFX.init() success.");
                 } catch (e) {
                     window.AnkiFX_Loader_Logs.push("AnkiFX init error: " + e.message);
