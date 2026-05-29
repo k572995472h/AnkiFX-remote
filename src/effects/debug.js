@@ -53,19 +53,24 @@ export function runDebug(contexts, config) {
         const initEruda = () => {
             if (window.eruda) {
                 try {
-                    window.eruda.init({
-                        container: erudaContainer,
-                        useShadowDom: true
-                    });
-                    window.eruda.position({ x: 20, y: 20 });
-                    window.eruda.show();
-
-                    // Flush all pre-load logs into the Eruda console panel
-                    if (window.AnkiFX_Loader_Logs) {
-                        window.AnkiFX_Loader_Logs.forEach(log => {
-                            console.log("[Pre-load] " + log);
+                    const isInitialized = window.eruda._isInit || window.__ERUDA_INITIALIZED__;
+                    if (!isInitialized) {
+                        window.eruda.init({
+                            container: erudaContainer,
+                            useShadowDom: true
                         });
+                        window.__ERUDA_INITIALIZED__ = true;
+                        window.eruda.position({ x: 20, y: 20 });
+
+                        // Flush all pre-load logs into the Eruda console panel
+                        if (window.AnkiFX_Loader_Logs && !window.__ERUDA_LOGS_FLUSHED__) {
+                            window.__ERUDA_LOGS_FLUSHED__ = true;
+                            window.AnkiFX_Loader_Logs.forEach(log => {
+                                console.log("[Pre-load] " + log);
+                            });
+                        }
                     }
+                    window.eruda.show();
                 } catch (e) {
                     console.error("Eruda init error:", e);
                 }
