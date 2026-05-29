@@ -93,12 +93,12 @@ export function runJulia(contexts, config = {}) {
             z = u_target + rot * (z - u_target);
 
             float iter = 0.0;
-            float maxIter = 200.0 + 60.0 * log(zoom);
+            float maxIter = clamp(200.0 + 60.0 * log(zoom), 200.0, 500.0);
 
-            for(float i = 0.0; i < 1000.0; i++) {
+            for(float i = 0.0; i < 500.0; i++) {
                 if (i >= maxIter) break;
                 z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + u_c;
-                if(dot(z, z) > 64.0) break; 
+                if(dot(z, z) > 16.0) break; 
                 iter++;
             }
 

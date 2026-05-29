@@ -26,7 +26,7 @@ export function runStarfield(contexts, config) {
     currentH = contexts.height;
 
     const stars = [];
-    const numStars = 50000;
+    const numStars = 8000;
     
     // --- COMPACT SIMPLEX NOISE ENGINE ---
     const perm = new Uint8Array(512);
@@ -227,7 +227,7 @@ export function runStarfield(contexts, config) {
             y: (Math.random() - 0.5) * currentH * 4,
             z: Math.random() * currentW,
             color: starColors[Math.floor(Math.random() * starColors.length)],
-            sizeBase: 1.5 + Math.random() * 2
+            sizeBase: 2.0 + Math.random() * 2.5
         });
     }
 

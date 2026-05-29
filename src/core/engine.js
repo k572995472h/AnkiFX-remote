@@ -207,7 +207,9 @@ export class AnkiFX {
 
         // Re-trigger resize on effects if they have custom resize logic
         if (this.currentEffectId && EFFECTS[this.currentEffectId]?.onResize) {
-            EFFECTS[this.currentEffectId].onResize(this.width, this.height, this.dpr);
+            const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            const effectDpr = (this.currentEffectId === 'mandelbrot' || this.currentEffectId === 'julia') ? glDpr : this.dpr;
+            EFFECTS[this.currentEffectId].onResize(this.width, this.height, effectDpr);
         }
     }
 
@@ -218,11 +220,13 @@ export class AnkiFX {
         const rect = background.getBoundingClientRect();
         this.width = rect.width;
         this.height = rect.height;
-        this.dpr = window.devicePixelRatio || 1;
+        this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        
+        const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
         // Resize GL Canvas
-        this.sharedGL.width = this.width * this.dpr;
-        this.sharedGL.height = this.height * this.dpr;
+        this.sharedGL.width = this.width * glDpr;
+        this.sharedGL.height = this.height * glDpr;
         this.sharedGL.style.width = this.width + 'px';
         this.sharedGL.style.height = this.height + 'px';
 
@@ -253,7 +257,8 @@ export class AnkiFX {
 
         // Notify active effect
         if (this.currentEffectId && EFFECTS[this.currentEffectId]?.onResize) {
-            EFFECTS[this.currentEffectId].onResize(this.width, this.height, this.dpr);
+            const effectDpr = (this.currentEffectId === 'mandelbrot' || this.currentEffectId === 'julia') ? glDpr : this.dpr;
+            EFFECTS[this.currentEffectId].onResize(this.width, this.height, effectDpr);
         }
     }
 
@@ -682,6 +687,8 @@ export class AnkiFX {
 
         const effect = EFFECTS[activeEffect];
         if (effect) {
+            const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            const effectDpr = (activeEffect === 'mandelbrot' || activeEffect === 'julia') ? glDpr : this.dpr;
             const sharedContexts = {
                 gl: this.glContext,
                 ctx2d: this.ctx2D,
@@ -689,7 +696,7 @@ export class AnkiFX {
                 canvas2D: this.shared2D,
                 width: this.width,
                 height: this.height,
-                dpr: this.dpr
+                dpr: effectDpr
             };
             this.currentEffectId = activeEffect;
 
