@@ -1,7 +1,7 @@
 <script>
     // Initialize global loader logs
     window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
-    window.AnkiFX_Loader_Logs.push("Template loaded.");
+    window.AnkiFX_Loader_Logs.push("Strictly Local-Only Template loaded.");
 
     // Loading Persistence
     // https://github.com/SimonLammer/anki-persistence
@@ -15,13 +15,8 @@
 
 <!-- Load the local offline engine backup first (static load is 100% mobile-resilient and CORS-safe) -->
 <script src="_ankifx.js" 
-        onload="window.AnkiFX_Loader_Logs.push('Local _ankifx.js script executed.'); if(window.AnkiFX) { window.AnkiFX.source = 'local'; }" 
+        onload="window.AnkiFX_Loader_Logs.push('Local _ankifx.js script executed.'); if(window.AnkiFX) { window.AnkiFX.source = 'local (strictly local template)'; }" 
         onerror="window.AnkiFX_Loader_Logs.push('Local _ankifx.js script failed to load.'); console.warn('AnkiFX: Local engine backup not found in collection.media.')"></script>
-
-<!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
-<script id="ankifx-engine-script" src="https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js" 
-        onload="window.AnkiFX_Loader_Logs.push('Remote _ankifx.js script executed.'); if(window.AnkiFX) { window.AnkiFX.source = 'remote'; }" 
-        onerror="window.AnkiFX_Loader_Logs.push('Remote _ankifx.js script failed to load.'); console.warn('AnkiFX: CDN failed to load, using local engine.')"></script>
 
 <script>
     // Closure-scoped flags to prevent duplicate execution within the same card's lifecycle

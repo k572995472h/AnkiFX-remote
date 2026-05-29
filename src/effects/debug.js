@@ -87,7 +87,7 @@ export function runDebug(contexts, config) {
 
         // Draw Viewport Info
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px monospace';
+        ctx.font = 'bold 13px monospace';
         const info = [
             `window: ${window.innerWidth}x${window.innerHeight}`,
             `screen: ${screen.width}x${screen.height}`,
@@ -96,8 +96,37 @@ export function runDebug(contexts, config) {
             `orient: ${window.orientation || 'N/A'}`
         ];
         info.forEach((text, i) => {
-            ctx.fillText(text, 20, 100 + i * 20);
+            ctx.fillText(text, 20, 90 + i * 18);
         });
+
+        // Draw AnkiFX Engine Diagnostics
+        ctx.fillStyle = '#0f0';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText('--- AnkiFX DIAGNOSTICS ---', 20, 195);
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px monospace';
+        ctx.fillText(`Version:  ${window.AnkiFX?.version || '1.0.0-dev'}`, 20, 215);
+        ctx.fillText(`Source:   ${window.AnkiFX?.source || 'unknown'}`, 20, 230);
+        ctx.fillText(`Built:    ${window.AnkiFX?.buildDate || 'development'}`, 20, 245);
+
+        // Draw Chronological Loader Logs
+        ctx.fillStyle = '#0ff';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText('--- CHRONOLOGICAL LOADER LOGS ---', 20, 280);
+
+        const logs = window.AnkiFX_Loader_Logs || [];
+        if (logs.length === 0) {
+            ctx.fillStyle = '#888';
+            ctx.font = 'italic 12px monospace';
+            ctx.fillText('(No logs captured by template loader)', 20, 300);
+        } else {
+            ctx.font = '11px monospace';
+            logs.slice(-12).forEach((log, idx) => {
+                const isError = log.includes('fail') || log.includes('Error') || log.includes('offline') || log.includes('warn');
+                ctx.fillStyle = isError ? '#ff5555' : '#55ff55';
+                ctx.fillText(`[${idx + 1}] ${log}`, 20, 300 + idx * 16);
+            });
+        }
 
         // Corner Markers
         ctx.fillStyle = '#f0f';

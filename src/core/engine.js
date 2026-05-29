@@ -817,4 +817,8 @@ AnkiFX.height = 0;
 AnkiFX.marqueeInterval = null;
 AnkiFX._layoutHandler = null;
 AnkiFX.observer = null;
+AnkiFX.version = process.env.ANKIFX_VERSION || '1.0.0-dev';
+AnkiFX.buildDate = process.env.BUILD_DATE || 'development';
+AnkiFX.source = 'unknown';
+
 

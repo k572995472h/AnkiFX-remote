@@ -435,3 +435,8 @@ input:checked+.afx-slider {
 input:checked+.afx-slider:before {
     transform: translateX(13px);
 }
+
+/* Hide card content container during active DEBUG effect to avoid jumble */
+html.afx-effect-debug #qa {
+    display: none !important;
+}

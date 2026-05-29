@@ -1,6 +1,7 @@
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
+const pkg = require('./package.json');
 
 const isWatch = process.argv.includes('--watch');
 const buildDir = path.join(__dirname, 'build');
@@ -82,6 +83,10 @@ async function runBuild() {
         outfile: 'build/_ankifx.js',
         format: 'iife',
         loader: { '.css': 'text' },
+        define: {
+            'process.env.ANKIFX_VERSION': JSON.stringify(pkg.version),
+            'process.env.BUILD_DATE': JSON.stringify(new Date().toLocaleString())
+        },
         plugins: [effectsRegistryPlugin, copyStaticFilesPlugin]
     });
 
