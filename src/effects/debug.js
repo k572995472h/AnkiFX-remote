@@ -1,6 +1,26 @@
 
 let animationId = null;
 let currentW, currentH;
+let erudaBlockListener = null;
+const blockEvents = ['click', 'touchend', 'mouseup', 'pointerup'];
+
+function isErudaEvent(e) {
+    if (!e) return false;
+    const path = e.composedPath ? e.composedPath() : [];
+    for (let i = 0; i < path.length; i++) {
+        const target = path[i];
+        if (!target) continue;
+        if (target.id === 'ankifx-eruda-container') return true;
+        if (target.tagName === 'ERUDA') return true;
+        if (typeof target.className === 'string' && target.className.includes('eruda')) return true;
+        if (target.classList && typeof target.classList.contains === 'function') {
+            if (target.classList.contains('eruda-entry-btn') || target.classList.contains('eruda-container')) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 export const effect = {
     id: 'debug',
@@ -38,16 +58,20 @@ export function runDebug(contexts, config) {
             erudaContainer.style.height = '100%';
             erudaContainer.style.pointerEvents = 'none';
             document.body.appendChild(erudaContainer);
-
-            // Stop all event propagation from Eruda to prevent card flipping in Anki
-            const blockEvents = ['click', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'touchmove', 'pointerdown', 'pointerup'];
-            blockEvents.forEach(evtName => {
-                erudaContainer.addEventListener(evtName, (e) => {
-                    e.stopPropagation();
-                }, { capture: false, passive: false });
-            });
         } else {
             erudaContainer.style.display = 'block';
+        }
+
+        // Register global block listener to prevent event leaking to Anki card flip
+        if (!erudaBlockListener) {
+            erudaBlockListener = (e) => {
+                if (isErudaEvent(e)) {
+                    e.stopPropagation();
+                }
+            };
+            blockEvents.forEach(evtName => {
+                document.body.addEventListener(evtName, erudaBlockListener, { capture: false, passive: false });
+            });
         }
 
         const initEruda = () => {
@@ -190,5 +214,11 @@ export function stopDebug() {
     const erudaContainer = document.getElementById('ankifx-eruda-container');
     if (erudaContainer) {
         erudaContainer.style.display = 'none';
+    }
+    if (erudaBlockListener) {
+        blockEvents.forEach(evtName => {
+            document.body.removeEventListener(evtName, erudaBlockListener, { capture: false });
+        });
+        erudaBlockListener = null;
     }
 }

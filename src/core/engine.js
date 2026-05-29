@@ -819,9 +819,23 @@ AnkiFX._layoutHandler = null;
 AnkiFX.observer = null;
 let detectedSource = 'local';
 try {
+    let scriptUrl = '';
     if (document.currentScript && document.currentScript.src) {
-        const srcUrl = document.currentScript.src;
-        if (srcUrl.includes('cdn.jsdelivr.net') || srcUrl.includes('github') || srcUrl.includes('rawgit')) {
+        scriptUrl = document.currentScript.src;
+    } else {
+        const stack = new Error().stack || '';
+        const matches = stack.match(/(https?:\/\/[^\s)\n:]+|file:\/\/[^\s)\n:]+)/g);
+        if (matches && matches.length > 0) {
+            for (let i = 0; i < matches.length; i++) {
+                if (matches[i].includes('ankifx')) {
+                    scriptUrl = matches[i];
+                    break;
+                }
+            }
+        }
+    }
+    if (scriptUrl) {
+        if (scriptUrl.includes('cdn.jsdelivr.net') || scriptUrl.includes('github') || scriptUrl.includes('rawgit') || scriptUrl.includes('githack')) {
             detectedSource = 'remote';
         } else {
             detectedSource = 'local';
