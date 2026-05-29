@@ -77,19 +77,19 @@ export function runMandelbrot(contexts, config = {}) {
             vec2 z = vec2(0.0);
             float iter = 0.0;
             
-            float maxIter = clamp(150.0 + 65.0 * log(zoom), 150.0, 1000.0);
-            const float ABSOLUTE_MAX = 1000.0;
+            float maxIter = clamp(150.0 + 65.0 * log(zoom), 150.0, 500.0);
+            const float ABSOLUTE_MAX = 500.0;
 
             for(float i = 0.0; i < ABSOLUTE_MAX; i++) {
                 if (i >= maxIter) break;
                 z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
-                if(dot(z, z) > 256.0) break; 
+                if(dot(z, z) > 16.0) break; 
                 iter++;
             }
 
             vec3 col = vec3(0.0);
             if(iter < maxIter - 1.0) {
-                float smoothIter = iter - log2(max(1.0, log2(dot(z, z)))) + 4.0;
+                float smoothIter = iter - log2(max(1.0, log2(dot(z, z)))) + 3.0;
                 float colorMap = fract(smoothIter * 0.03 - u_time * 0.2);
                 col = palette(colorMap);
             }

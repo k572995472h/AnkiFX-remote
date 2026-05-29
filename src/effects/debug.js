@@ -23,29 +23,39 @@ export function runDebug(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
+    const actualDpr = contexts.dpr || 1;
 
+    let lastTime = 0;
+    let frameCount = 0;
+    let fps = 0;
 
+    function render(timestamp) {
+        if (timestamp === undefined) timestamp = performance.now();
+        if (!lastTime) lastTime = timestamp;
+        frameCount++;
+        if (timestamp - lastTime >= 1000) {
+            fps = frameCount;
+            frameCount = 0;
+            lastTime = timestamp;
+        }
 
-
-    function render() {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, currentW, currentH);
-
-
-
 
         // Draw Viewport Info
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px monospace';
         const info = [
+            `FPS: ${fps}`,
             `window: ${window.innerWidth}x${window.innerHeight}`,
             `screen: ${screen.width}x${screen.height}`,
-            `dpr: ${window.devicePixelRatio}`,
+            `dpr (native): ${window.devicePixelRatio}`,
+            `dpr (engine): ${actualDpr}`,
             `doc: ${document.documentElement.clientWidth}x${document.documentElement.clientHeight}`,
             `orient: ${window.orientation || 'N/A'}`
         ];
         info.forEach((text, i) => {
-            ctx.fillText(text, 20, 90 + i * 18);
+            ctx.fillText(text, 20, 60 + i * 18);
         });
 
         // Draw AnkiFX Engine Diagnostics

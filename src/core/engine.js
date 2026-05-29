@@ -207,7 +207,9 @@ export class AnkiFX {
 
         // Re-trigger resize on effects if they have custom resize logic
         if (this.currentEffectId && EFFECTS[this.currentEffectId]?.onResize) {
-            EFFECTS[this.currentEffectId].onResize(this.width, this.height, this.dpr);
+            const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            const effectDpr = (this.currentEffectId === 'mandelbrot' || this.currentEffectId === 'julia') ? glDpr : this.dpr;
+            EFFECTS[this.currentEffectId].onResize(this.width, this.height, effectDpr);
         }
     }
 
@@ -218,11 +220,13 @@ export class AnkiFX {
         const rect = background.getBoundingClientRect();
         this.width = rect.width;
         this.height = rect.height;
-        this.dpr = window.devicePixelRatio || 1;
+        this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        
+        const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
         // Resize GL Canvas
-        this.sharedGL.width = this.width * this.dpr;
-        this.sharedGL.height = this.height * this.dpr;
+        this.sharedGL.width = this.width * glDpr;
+        this.sharedGL.height = this.height * glDpr;
         this.sharedGL.style.width = this.width + 'px';
         this.sharedGL.style.height = this.height + 'px';
 
@@ -253,7 +257,8 @@ export class AnkiFX {
 
         // Notify active effect
         if (this.currentEffectId && EFFECTS[this.currentEffectId]?.onResize) {
-            EFFECTS[this.currentEffectId].onResize(this.width, this.height, this.dpr);
+            const effectDpr = (this.currentEffectId === 'mandelbrot' || this.currentEffectId === 'julia') ? glDpr : this.dpr;
+            EFFECTS[this.currentEffectId].onResize(this.width, this.height, effectDpr);
         }
     }
 
@@ -388,7 +393,16 @@ export class AnkiFX {
             `;
         }
 
-        overlay.innerHTML = dialogHtml;
+        let globalFpsHtml = "";
+        if (config.debug) {
+            globalFpsHtml = `
+                <div id="afx-global-fps" style="position: absolute; top: 10px; left: 10px; color: #0f0; font-family: monospace; font-size: 14px; font-weight: bold; text-shadow: 1px 1px 2px #000; z-index: 9999; pointer-events: none;">
+                    FPS: --
+                </div>
+            `;
+        }
+
+        overlay.innerHTML = dialogHtml + globalFpsHtml;
 
         // Inject corner controls (Toggles & Picker) directly into overlay
         const tempContainer = document.createElement('div');
@@ -673,6 +687,8 @@ export class AnkiFX {
 
         const effect = EFFECTS[activeEffect];
         if (effect) {
+            const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            const effectDpr = (activeEffect === 'mandelbrot' || activeEffect === 'julia') ? glDpr : this.dpr;
             const sharedContexts = {
                 gl: this.glContext,
                 ctx2d: this.ctx2D,
@@ -680,7 +696,7 @@ export class AnkiFX {
                 canvas2D: this.shared2D,
                 width: this.width,
                 height: this.height,
-                dpr: this.dpr
+                dpr: effectDpr
             };
             this.currentEffectId = activeEffect;
 
@@ -790,7 +806,22 @@ export class AnkiFX {
     static startMarqueeLoop() {
         if (this.marqueeInterval) return;
 
-        const tick = () => {
+        let lastTime = 0;
+        let frameCount = 0;
+
+        const tick = (timestamp) => {
+            if (timestamp === undefined) timestamp = performance.now();
+            if (!lastTime) lastTime = timestamp;
+            frameCount++;
+            if (timestamp - lastTime >= 1000) {
+                const fpsEl = document.getElementById('afx-global-fps');
+                if (fpsEl) {
+                    fpsEl.textContent = `FPS: ${frameCount} | Engine DPR: ${this.dpr}`;
+                }
+                frameCount = 0;
+                lastTime = timestamp;
+            }
+
             if (this.marquee && this.ctxMarquee) {
                 this.ctxMarquee.clearRect(0, 0, this.width, this.height);
                 this.marquee.render(this.ctxMarquee, this.width, this.height);
