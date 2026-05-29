@@ -134,22 +134,40 @@ export function runDebug(contexts, config) {
         ctx.fillText(`Source:   ${window.AnkiFX?.source || 'unknown'}`, 20, 230);
         ctx.fillText(`Built:    ${window.AnkiFX?.buildDate || 'development'}`, 20, 245);
 
+        // Draw Engine Evaluation History
+        ctx.fillStyle = '#0ff';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText('--- ENGINE EVALUATION HISTORY ---', 20, 265);
+
+        const history = window.AnkiFX_Eval_History || [];
+        if (history.length === 0) {
+            ctx.fillStyle = '#888';
+            ctx.font = 'italic 12px monospace';
+            ctx.fillText('(No evaluation history captured)', 20, 282);
+        } else {
+            ctx.font = '11px monospace';
+            history.slice(-3).forEach((h, idx) => {
+                ctx.fillStyle = h.status === 'active' ? '#55ff55' : '#ffaa55';
+                ctx.fillText(`[${idx + 1}] ${h.source} (${h.version}) @ ${h.time} - ${h.status}`, 20, 282 + idx * 15);
+            });
+        }
+
         // Draw Chronological Loader Logs
         ctx.fillStyle = '#0ff';
         ctx.font = 'bold 13px monospace';
-        ctx.fillText('--- CHRONOLOGICAL LOADER LOGS ---', 20, 280);
+        ctx.fillText('--- CHRONOLOGICAL LOADER LOGS ---', 20, 335);
 
         const logs = window.AnkiFX_Loader_Logs || [];
         if (logs.length === 0) {
             ctx.fillStyle = '#888';
             ctx.font = 'italic 12px monospace';
-            ctx.fillText('(No logs captured by template loader)', 20, 300);
+            ctx.fillText('(No logs captured by template loader)', 20, 355);
         } else {
             ctx.font = '11px monospace';
             logs.slice(-12).forEach((log, idx) => {
                 const isError = log.includes('fail') || log.includes('Error') || log.includes('offline') || log.includes('warn');
                 ctx.fillStyle = isError ? '#ff5555' : '#55ff55';
-                ctx.fillText(`[${idx + 1}] ${log}`, 20, 300 + idx * 16);
+                ctx.fillText(`[${idx + 1}] ${log}`, 20, 355 + idx * 16);
             });
         }
 
