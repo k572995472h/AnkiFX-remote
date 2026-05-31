@@ -337,6 +337,28 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 </script>
 ```
 
+### 🔄 Active Card Lifecycle & Auto-Cleanup (`.ankifx-card`)
+
+To ensure seamless card transitions and prevent performance degradation on standard cards, AnkiFX implements an automatic active-card detection and cleanup system. 
+
+#### Why it is required:
+Anki does not perform a full browser/WebView reload when navigating between flashcards; instead, it dynamically swaps the HTML content inside the `#qa` wrapper. To prevent background visualizers, high-frequency render loops (WebGL/Canvas2D), and jukebox tracker-audio from running indefinitely when navigating to a non-AnkiFX card, the engine needs a way to detect when a card transition has occurred.
+
+#### How it works:
+1. **Mutation Observer**: The engine installs a global `MutationObserver` on `document.documentElement` to watch for DOM transitions.
+2. **Presence Check**: On every DOM shift, the observer looks for a hidden element with the class `ankifx-card` inside the `#qa` container.
+3. **Auto-Destroy**: If `<div class="ankifx-card" style="display:none;"></div>` is **not** found, the engine immediately calls `AnkiFX.destroy()`, safely tearing down animation frames, stopping audio playbacks, and releasing resources.
+
+#### Mandatory Template Tag:
+Every AnkiFX card template (both Front and Back) **must** include this exact tag somewhere in the HTML (preferably at the bottom of the card body):
+
+```html
+<!-- Mandatory marker for AnkiFX card detection and auto-cleanup -->
+<div class="ankifx-card" style="display:none;"></div>
+```
+
+---
+
 ### 📦 Packaging Assets for Deck Distribution (`.apkg`)
 
 When you export a deck as an `.apkg` file, Anki scans **only the fields of your notes** (not the card templates) to decide which media assets to package inside the archive. If a script is only referenced in the template (like `<script src="_ankifx.js"></script>`), Anki's media exporter will completely skip it, resulting in broken, static templates for anyone who imports your deck.
