@@ -16,8 +16,9 @@ Now, the project is open to the public so anyone can inject stunning, high-perfo
 *   **Dynamic Effect Registry**: Effects are auto-discovered during the build process and registered via an auto-generated `registry.js`. Adding a new effect is as simple as dropping a `.js` file into `src/effects/`.
 *   **Auto-Maximizing Viewport Sizing**: An engine-level auto-calibration system designed to solve complex iOS/AnkiMobile viewport height and offset issues. It dynamically adjusts the `--tuner-height` CSS variable based on the native `--io-header` to guarantee perfect edge-to-edge rendering behind Anki's native UI bars.
     *   **Debug Mode**: Setting `debug: true` in your deck configuration payload displays a styled **Clear Storage** button directly inside the control deck (above the effect picker, visible only when the 'Debug' effect is active) to clear your local storage preferences in one tap.
-*   **Canvas Visualizers**: Twelve high-performance background effects:
+*   **Canvas Visualizers**: Thirteen high-performance background effects:
     *   *Aurora*: Organic, noise-based northern lights simulation (optimized for mobile).
+    *   *ECG*: Blood-red cardiac monitor visualizer effect with PQRST waveforms, phosphor fade trail, alternating arrhythmias (including AV blocks, STEMI, AFib, Flutter, and Torsades), and an interactive trigger toggle button.
     *   *Fire*: Classic demoscene doom-fire simulation.
     *   *Geometry*: 3D demoscene geometry + scrolling marquee.
     *   *Julia Set*: Animated fractal with a built-in **Preset Picker**.

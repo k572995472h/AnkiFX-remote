@@ -29,9 +29,9 @@ export class AnkiFX {
         config.countdown = isNaN(parsedCountdown) ? 30 : Math.max(0, parsedCountdown);
 
         // Check if there's a configfile error / missing terms
-        config.isConfigFileError = typeof config.termsText !== 'string' || 
-                                   config.termsText.trim() === "" ||
-                                   config.termsText === "No terms provided.";
+        config.isConfigFileError = typeof config.termsText !== 'string' ||
+            config.termsText.trim() === "" ||
+            config.termsText === "No terms provided.";
 
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -46,14 +46,14 @@ export class AnkiFX {
                     qa.style.position = "relative";
                     qa.style.zIndex = "10";
                 }
-                
+
                 // IMPORTANT: Refresh configurations even if we skip full init
                 this.defaultMarqueeText = config.marquee;
                 if (this.marquee) {
                     this.marquee.setText(config.marquee);
                     this.marquee.setPosition(config.marqueePosition);
                 }
-                
+
                 // Refresh title if it exists
                 const titleEl = document.getElementById('afx-deck-title');
                 if (titleEl) titleEl.textContent = config.deckTitle;
@@ -209,7 +209,7 @@ export class AnkiFX {
         const savedOffset = localStorage.getItem('ankifx_tuner_offset');
         const style = getComputedStyle(document.documentElement);
         const header = parseInt(style.getPropertyValue('--io-header')) || 0;
-        
+
         const offset = this.tunerOffset !== undefined ? this.tunerOffset : (savedOffset !== null ? parseInt(savedOffset) : -header);
         const total = offset + header;
 
@@ -231,7 +231,7 @@ export class AnkiFX {
         this.width = rect.width;
         this.height = rect.height;
         this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-        
+
         const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
         // Resize GL Canvas
@@ -356,6 +356,14 @@ export class AnkiFX {
             </div>
         `;
 
+        let ecgTriggerHtml = `
+            <div id="afx-ecg-trigger-container" class="afx-control-row afx-effect-selector-container" style="padding: 0; display: ${activeEffect === 'ecg' ? 'flex' : 'none'}; border: 1px solid rgba(255, 26, 26, 0.45);">
+                <button id="afx-ecg-trigger-btn" style="background: transparent; color: #ff1a1a; border: none; width: 100%; height: 100%; cursor: pointer; text-transform: uppercase; font-family: 'Courier New', Courier, monospace !important; font-size: var(--afx-picker-font-size) !important; font-weight: bold !important; padding: 0 15px; display: flex; align-items: center; justify-content: center; width: 100%;">
+                    ⚡ TRIGGER ARRHYTHMIA
+                </button>
+            </div>
+        `;
+
         let effectSelectorHtml = `
             <div id="afx-effect-selector-container" class="afx-control-row afx-effect-selector-container" style="padding: 0;">
                 <select id="afx-effect-selector">
@@ -379,6 +387,7 @@ export class AnkiFX {
             <div id="afx-controls-stack-right" class="afx-controls-stack">
                 ${juliaSelectorHtml}
                 ${gradientRandomizerHtml}
+                ${ecgTriggerHtml}
                 ${clearStorageHtml}
                 ${effectSelectorHtml}
             </div>
@@ -387,7 +396,7 @@ export class AnkiFX {
         let hasAgreedSession = false;
         try {
             hasAgreedSession = sessionStorage.getItem(`ankifx_agreed_${config.deckTitle}`) === 'true';
-        } catch (e) {}
+        } catch (e) { }
 
         const hasTerms = config.termsText && config.termsText.trim() !== "" && !hasAgreedSession;
         let dialogHtml = "";
@@ -635,6 +644,11 @@ export class AnkiFX {
                     clearStorageContainer.style.display = newEffect === 'debug' ? 'flex' : 'none';
                 }
 
+                const ecgTriggerContainer = document.getElementById('afx-ecg-trigger-container');
+                if (ecgTriggerContainer) {
+                    ecgTriggerContainer.style.display = newEffect === 'ecg' ? 'flex' : 'none';
+                }
+
                 if (newEffect === 'debug') {
                     overlay.classList.add('afx-debug-active');
                 } else {
@@ -696,6 +710,26 @@ export class AnkiFX {
                     gradEffect.randomizeColors();
                 }
             });
+        }
+
+        // ECG Arrhythmia Trigger Button Binding
+        const ecgTriggerBtn = document.getElementById('afx-ecg-trigger-btn');
+        if (ecgTriggerBtn) {
+            ecgTriggerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const current = localStorage.getItem('ankifx_ecg_rhythm') || 'sinus';
+                let next;
+                if (current === 'sinus') {
+                    const rhythms = ['first_degree', 'mobitz_1', 'mobitz_2', 'third_degree', 'st_elevation', 'afib', 'a_flutter', 'torsades'];
+                    next = rhythms[Math.floor(Math.random() * rhythms.length)];
+                } else {
+                    next = 'sinus';
+                }
+                localStorage.setItem('ankifx_ecg_rhythm', next);
+                localStorage.setItem('ankifx_ecg_trigger_time', Date.now());
+            });
+            ecgTriggerBtn.addEventListener('touchstart', (e) => e.stopPropagation());
+            ecgTriggerBtn.addEventListener('touchend', (e) => e.stopPropagation());
         }
 
         // Clear LocalStorage Binding
@@ -766,7 +800,7 @@ export class AnkiFX {
         if (deckTitle) {
             try {
                 sessionStorage.setItem(`ankifx_agreed_${deckTitle}`, 'true');
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // Ensure the "qa" element is above the background
