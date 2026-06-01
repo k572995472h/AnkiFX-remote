@@ -58,6 +58,57 @@ export function runDebug(contexts, config) {
             ctx.fillText(text, 20, 60 + i * 18);
         });
 
+        // Draw Tuner/Layout Info (Right Column)
+        ctx.fillStyle = '#ff55ff';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText('--- TUNER & LAYOUT METRICS ---', 360, 60);
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px monospace';
+        
+        const style = getComputedStyle(document.documentElement);
+        const ioHeader = style.getPropertyValue('--io-header') || 'N/A';
+        const tunerHeight = style.getPropertyValue('--tuner-height') || 'N/A';
+        const inlineTunerHeight = document.documentElement.style.getPropertyValue('--tuner-height') || 'N/A';
+        const tunerOffset = window.AnkiFX ? window.AnkiFX.tunerOffset : 'N/A';
+        const tunerAutoUpdate = window.AnkiFX ? window.AnkiFX.tunerAutoUpdate : 'N/A';
+        const bgEl = document.getElementById('ankifx-background');
+        const bgHeight = bgEl ? bgEl.getBoundingClientRect().height : 'N/A';
+        const bgWidth = bgEl ? bgEl.getBoundingClientRect().width : 'N/A';
+        const overlayEl = document.getElementById('ankifx-overlay');
+        const overlayHeight = overlayEl ? overlayEl.getBoundingClientRect().height : 'N/A';
+        const qaEl = document.getElementById('qa');
+        const qaHeight = qaEl ? qaEl.getBoundingClientRect().height : 'N/A';
+        const cardEl = document.querySelector('.card');
+        const cardHeight = cardEl ? cardEl.getBoundingClientRect().height : 'N/A';
+        const isLandscape = window.innerWidth > window.innerHeight;
+
+        const topInset = style.getPropertyValue('--top-inset') || 'N/A';
+        const bottomInset = style.getPropertyValue('--bottom-inset') || 'N/A';
+        const styleBottomOffset = style.getPropertyValue('--afx-bottom-offset') || 'N/A';
+        const ioHeaderVal = parseInt(style.getPropertyValue('--io-header')) || 0;
+        const visibleH = document.documentElement.clientHeight + ioHeaderVal;
+
+        const tunerInfo = [
+            `--io-header:           ${ioHeader}`,
+            `--top-inset:           ${topInset}`,
+            `--bottom-inset:        ${bottomInset}`,
+            `--tuner-height (comp): ${tunerHeight}`,
+            `--tuner-height (in):   ${inlineTunerHeight}`,
+            `tunerOffset:           ${tunerOffset}`,
+            `tunerAutoUpdate:       ${tunerAutoUpdate}`,
+            `isLandscape:           ${isLandscape}`,
+            `--afx-bottom-offset:   ${styleBottomOffset}`,
+            `bg-size:               ${bgWidth}x${bgHeight}`,
+            `overlay-h:             ${overlayHeight}`,
+            `qa-h:                  ${qaHeight}`,
+            `card-h:                ${cardHeight}`,
+            `visibleBounds:         0 to ${visibleH}px`
+        ];
+
+        tunerInfo.forEach((text, i) => {
+            ctx.fillText(text, 360, 80 + i * 16);
+        });
+
         // Draw AnkiFX Engine Diagnostics
         ctx.fillStyle = '#0f0';
         ctx.font = 'bold 13px monospace';
@@ -112,6 +163,23 @@ export function runDebug(contexts, config) {
         ctx.fillText(`(${currentW},0)`, currentW - 65, 15);
         ctx.fillText(`(0,${currentH})`, 5, currentH - 5);
         ctx.fillText(`(${currentW},${currentH})`, currentW - 65, currentH - 5);
+
+        // Draw Visible Layout Boundary
+
+        ctx.strokeStyle = '#0ff';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(0, visibleH - 2);
+        ctx.lineTo(currentW, visibleH - 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#0ff';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('--- VISIBLE DOCUMENT BOTTOM ---', currentW / 2, visibleH - 8);
+        ctx.textAlign = 'left';
 
         // Bottom Edge Warning
         ctx.strokeStyle = '#f00';

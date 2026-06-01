@@ -1,16 +1,19 @@
-
 let animationId = null;
 let currentW, currentH;
+let topInset = 0;
+let visibleH = 0;
 let game = null;
+
+const margin = 0;
 
 function buildGame() {
     if (currentW === undefined || currentH === undefined) return;
+    const safeVisibleH = Math.max(100, visibleH);
     // Cell size: aim for ~25 columns across the width, min 14px
     const cellSize = Math.max(14, Math.floor(currentW / 25));
     const cols = Math.floor(currentW / cellSize);
-    const rows = Math.floor(currentH / cellSize);
+    const rows = Math.floor(safeVisibleH / cellSize);
     game = new TetrisGame(cols, rows, cellSize);
-    game._selectTarget();
 }
 
 export const effect = {
@@ -21,6 +24,9 @@ export const effect = {
     onResize: (w, h) => {
         currentW = w;
         currentH = h;
+        const style = getComputedStyle(document.documentElement);
+        topInset = parseInt(style.getPropertyValue('--io-header')) || 0;
+        visibleH = h - topInset;
         buildGame();
     },
     preferredTrack: { title: "WinTask 3", trackTitle: "Whoopees Tetris" },
@@ -160,6 +166,8 @@ class TetrisGame {
             x: Math.floor((this.cols - p.shape[0].length) / 2),
             y: 0
         };
+        // Compute AI destination target strictly once upon spawning to offload frame-rendering updates!
+        this._selectTarget();
     }
 
     _fits(shape, px, py) {
@@ -210,7 +218,7 @@ class TetrisGame {
         return rowsCleared;
     }
 
-    // Better AI: pick a placement that balances height, holes, and lines cleared
+    // AI: pick a placement that balances height, holes, and lines cleared
     _choosePlacement() {
         const { def } = this.current;
         let bestScore = -Infinity;
@@ -227,7 +235,7 @@ class TetrisGame {
 
                 if (!this._fits(shape, tx, ty)) continue;
 
-                // Score based on human-like heuristic
+                // Score based on heuristic
                 const score = this._getHeuristicScore(shape, tx, ty);
                 if (score > bestScore) {
                     bestScore = score;
@@ -286,13 +294,10 @@ class TetrisGame {
             bumpiness += Math.abs(colHeights[c] - colHeights[c + 1]);
         }
 
-        // Standard weights for a competent Tetris AI (simplified)
-        // aggHeight (-0.5), lines (+0.7), holes (-0.35), bumpiness (-0.18)
         return (aggHeight * -0.51) + (lines * 0.76) + (holes * -0.35) + (bumpiness * -0.18) + (Math.random() * 0.1);
     }
 
     _isBoardFull() {
-        // Consider full if the top 3 rows have any filled cell
         for (let r = 0; r < 3; r++) {
             if (this.board[r].some(c => c !== null)) return true;
         }
@@ -303,7 +308,6 @@ class TetrisGame {
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 if (this.board[r][c]) {
-                    // Spawn several particles per cell
                     const cx = offsetX + c * this.cellSize + this.cellSize / 2;
                     const cy = offsetY + r * this.cellSize + this.cellSize / 2;
                     const count = 4 + Math.floor(Math.random() * 4);
@@ -321,7 +325,6 @@ class TetrisGame {
         this.explodeTimer = 0;
         this.particles = [];
         this._spawnPiece();
-        this._selectTarget();
     }
 
     _selectTarget() {
@@ -346,12 +349,7 @@ class TetrisGame {
             return;
         }
 
-        if (!this.current.targetX && this.current.targetX !== 0) {
-            this._selectTarget();
-        }
-
-        // 1) Horizontal Movement & Rotation "Readying"
-        // AI moves and rotates pieces quickly (every 2 frames)
+        // 1) Horizontal Movement
         this.moveCounter++;
         if (this.moveCounter >= 2) {
             this.moveCounter = 0;
@@ -367,13 +365,8 @@ class TetrisGame {
         }
 
         // 2) Gravity / Vertical Fall
-        // Determine drop speed based on level and AI readiness
         const isAligned = this.current.x === this.current.targetX;
-        
-        // Base gravity: starts slow (40 frames/step) and speeds up per level
         let gravityThreshold = Math.max(4, 40 - (this.level - 1) * 3);
-        
-        // Strategic Speed-up: If aligned, drop MUCH faster (like original game "hard drop")
         if (isAligned) {
             gravityThreshold = 1; // Fast fall!
         }
@@ -382,75 +375,109 @@ class TetrisGame {
         if (this.dropCounter >= gravityThreshold) {
             this.dropCounter = 0;
             
-            // Drop one row
             if (this._fits(this.current.shape, this.current.x, this.current.y + 1)) {
                 this.current.y++;
             } else {
-                // Lock piece
                 this._lock();
 
                 if (this._isBoardFull()) {
-                    // Trigger explosion
                     this._explodeBoard(offsetX, offsetY);
                     this.exploding = true;
                     this.explodeTimer = 0;
                 } else {
                     this._spawnPiece();
-                    this._selectTarget();
                 }
             }
         }
     }
 
+    // Aggressively optimized batched drawing: Fills are batched by color, and 3D highlights/shadows are batched into exactly 2 path operations!
     draw(ctx, offsetX, offsetY) {
         const cs = this.cellSize;
-
-        // Draw board
+        const cellsByColor = {};
+        
+        // 1. Collect all filled board cells
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 const color = this.board[r][c];
                 if (color) {
-                    this._drawCell(ctx, offsetX + c * cs, offsetY + r * cs, cs, color,
-                        this.exploding ? Math.max(0, 1 - this.explodeTimer / 40) : 1);
+                    if (!cellsByColor[color]) cellsByColor[color] = [];
+                    cellsByColor[color].push({
+                        px: offsetX + c * cs,
+                        py: offsetY + r * cs,
+                        alpha: this.exploding ? Math.max(0, 1 - this.explodeTimer / 40) : 1
+                    });
                 }
             }
         }
 
-        // Draw active piece (not during explosion)
+        // 2. Collect active piece cells (if not exploding)
         if (!this.exploding && this.current) {
             const { shape, x, y, color } = this.current;
-            for (let r = 0; r < shape.length; r++) {
-                for (let c = 0; c < shape[r].length; c++) {
-                    if (shape[r][c]) {
-                        this._drawCell(ctx, offsetX + (x + c) * cs, offsetY + (y + r) * cs, cs, color, 1);
+            if (color) {
+                if (!cellsByColor[color]) cellsByColor[color] = [];
+                for (let r = 0; r < shape.length; r++) {
+                    for (let c = 0; c < shape[r].length; c++) {
+                        if (shape[r][c]) {
+                            cellsByColor[color].push({
+                                px: offsetX + (x + c) * cs,
+                                py: offsetY + (y + r) * cs,
+                                alpha: 1
+                            });
+                        }
                     }
                 }
             }
         }
 
-        // Draw particles
+        // 3. Batch draw block fills (set fillStyle once per color)
+        for (const color in cellsByColor) {
+            const cells = cellsByColor[color];
+            ctx.fillStyle = color;
+            cells.forEach(cell => {
+                ctx.globalAlpha = cell.alpha;
+                ctx.fillRect(cell.px + 1, cell.py + 1, cs - 2, cs - 2);
+            });
+        }
+        ctx.globalAlpha = 1;
+
+        // 4. Batch draw all highlights (white bevels) in exactly ONE unified path operation!
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (const color in cellsByColor) {
+            cellsByColor[color].forEach(cell => {
+                ctx.globalAlpha = cell.alpha;
+                const px = cell.px;
+                const py = cell.py;
+                ctx.moveTo(px + 1, py + cs - 2);
+                ctx.lineTo(px + 1, py + 1);
+                ctx.lineTo(px + cs - 2, py + 1);
+            });
+        }
+        ctx.stroke();
+
+        // 5. Batch draw all shadows (black bevels) in exactly ONE unified path operation!
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.beginPath();
+        for (const color in cellsByColor) {
+            cellsByColor[color].forEach(cell => {
+                ctx.globalAlpha = cell.alpha;
+                const px = cell.px;
+                const py = cell.py;
+                ctx.moveTo(px + 1, py + cs - 1);
+                ctx.lineTo(px + cs - 1, py + cs - 1);
+                ctx.lineTo(px + cs - 1, py + 1);
+            });
+        }
+        ctx.stroke();
+
+        ctx.globalAlpha = 1;
+
+        // 6. Draw particles
         ctx.save();
         this.particles.forEach(p => p.draw(ctx));
         ctx.restore();
-        ctx.globalAlpha = 1;
-    }
-
-    _drawCell(ctx, px, py, cs, color, alpha) {
-        ctx.globalAlpha = alpha;
-        // Main fill
-        ctx.fillStyle = color;
-        ctx.fillRect(px + 1, py + 1, cs - 2, cs - 2);
-
-        // Bright top-left highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillRect(px + 1, py + 1, cs - 2, 3);
-        ctx.fillRect(px + 1, py + 1, 3, cs - 2);
-
-        // Dark bottom-right shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.fillRect(px + 1, py + cs - 4, cs - 2, 3);
-        ctx.fillRect(px + cs - 4, py + 1, 3, cs - 2);
-
         ctx.globalAlpha = 1;
     }
 }
@@ -460,6 +487,8 @@ export function runTetris(contexts, config) {
     const ctx = contexts.ctx2d;
     currentW = contexts.width;
     currentH = contexts.height;
+    topInset = contexts.topInset || 0;
+    visibleH = contexts.visibleHeight || currentH;
 
     buildGame();
 
@@ -468,29 +497,26 @@ export function runTetris(contexts, config) {
         ctx.fillStyle = 'rgba(8, 6, 18, 0.92)';
         ctx.fillRect(0, 0, currentW, currentH);
 
-        // Subtle grid lines
+        // Highly optimized batched line path stroke for drawing grid lines instantly in 1 call!
         ctx.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx.lineWidth = 0.5;
         if (game) {
             const cs = game.cellSize;
             const ox = Math.floor((currentW - game.cols * cs) / 2);
-            const oy = Math.floor((currentH - game.rows * cs) / 2);
+            const oy = topInset + (visibleH - game.rows * cs);
 
+            ctx.beginPath();
             for (let c = 0; c <= game.cols; c++) {
-                ctx.beginPath();
                 ctx.moveTo(ox + c * cs, oy);
                 ctx.lineTo(ox + c * cs, oy + game.rows * cs);
-                ctx.stroke();
             }
             for (let r = 0; r <= game.rows; r++) {
-                ctx.beginPath();
                 ctx.moveTo(ox, oy + r * cs);
                 ctx.lineTo(ox + game.cols * cs, oy + r * cs);
-                ctx.stroke();
             }
+            ctx.stroke();
 
             // Step the simulation every frame
-            // Internal counters in game.step() handle the speed
             game.step(ox, oy);
 
             game.draw(ctx, ox, oy);

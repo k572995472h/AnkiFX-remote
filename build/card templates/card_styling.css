@@ -16,7 +16,7 @@ body {
 
 /* Prevent card content from touching the edges of the screen while keeping the background canvas full-screen */
 #qa {
-    padding: 0 15px 80px 15px !important;
+    padding: 0 15px calc(var(--bottom-inset) + 100px) 15px !important;
     box-sizing: border-box !important;
 }
 
@@ -35,7 +35,8 @@ th {
 table {
     display: inline-block;
     text-align: left;
-    background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent dark background */
+    background-color: rgba(0, 0, 0, 0.6);
+    /* Semi-transparent dark background */
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -86,12 +87,29 @@ img {
 }
 
 /* Classes for individual cards */
-.image40 img { width: 40% !important; }
-.image50 img { width: 50% !important; }
-.image60 img { width: 60% !important; }
-.image70 img { width: 70% !important; }
-.image80 img { width: 80% !important; }
-.image90 img { width: 90% !important; }
+.image40 img {
+    width: 40% !important;
+}
+
+.image50 img {
+    width: 50% !important;
+}
+
+.image60 img {
+    width: 60% !important;
+}
+
+.image70 img {
+    width: 70% !important;
+}
+
+.image80 img {
+    width: 80% !important;
+}
+
+.image90 img {
+    width: 90% !important;
+}
 
 .image40 img,
 .image50 img,

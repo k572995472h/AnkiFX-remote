@@ -69,7 +69,7 @@ export class AnkiFX {
         document.documentElement.classList.remove('afx-agreed');
 
         // Remove existing elements to prevent duplicates
-        ['ankifx-overlay', 'ankifx-background', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
+        ['ankifx-overlay', 'ankifx-background', 'afx-tuner-ui', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.remove();
         });
@@ -116,12 +116,56 @@ export class AnkiFX {
             window.removeEventListener('orientationchange', this._layoutHandler);
             window.removeEventListener('resize', this._layoutHandler);
         }
+        if (this._resizeTimeout) clearTimeout(this._resizeTimeout);
+        if (this._resizeInterval) clearInterval(this._resizeInterval);
 
         this._layoutHandler = () => {
-            setTimeout(() => {
+            if (this._resizeTimeout) clearTimeout(this._resizeTimeout);
+            if (this._resizeInterval) clearInterval(this._resizeInterval);
+
+            // Initial immediate update
+            this.handleResize();
+            this.updateTuner();
+
+            // Run a delayed update shortly after to capture the immediate change
+            this._resizeTimeout = setTimeout(() => {
                 this.handleResize();
                 this.updateTuner();
-            }, 50);
+            }, 100);
+
+            // Poll for 1.5 seconds to capture the transition settling (especially for AnkiMobile rotation)
+            let elapsed = 0;
+            let lastW = this.width;
+            let lastH = this.height;
+            const initialStyle = getComputedStyle(document.documentElement);
+            let lastHeader = parseInt(initialStyle.getPropertyValue('--io-header')) || 0;
+
+            this._resizeInterval = setInterval(() => {
+                elapsed += 100;
+                if (elapsed >= 1500) {
+                    clearInterval(this._resizeInterval);
+                    return;
+                }
+
+                const currentStyle = getComputedStyle(document.documentElement);
+                const currentHeader = parseInt(currentStyle.getPropertyValue('--io-header')) || 0;
+                const background = document.getElementById('ankifx-background');
+                const rect = background ? background.getBoundingClientRect() : null;
+                const currentW = rect ? rect.width : window.innerWidth;
+                const currentH = rect ? rect.height : window.innerHeight;
+
+                if (currentW !== lastW || currentH !== lastH || currentHeader !== lastHeader) {
+                    lastW = currentW;
+                    lastH = currentH;
+                    lastHeader = currentHeader;
+                    
+                    if (this.tunerAutoUpdate) {
+                        this.tunerOffset = 0;
+                    }
+                    this.handleResize();
+                    this.updateTuner();
+                }
+            }, 100);
         };
 
         window.addEventListener('orientationchange', this._layoutHandler);
@@ -173,27 +217,77 @@ export class AnkiFX {
     }
 
     static initTuner(debug, activeEffect) {
-        // Even if we don't show the tuner UI, we still run the layout adjustments
         const savedOffset = localStorage.getItem('ankifx_tuner_offset');
         const style = getComputedStyle(document.documentElement);
         const header = parseInt(style.getPropertyValue('--io-header')) || 0;
 
-        const initialOffset = savedOffset !== null ? parseInt(savedOffset) : -header;
+        const initialOffset = savedOffset !== null ? parseInt(savedOffset) : 0;
         this.tunerOffset = initialOffset;
         this.tunerAutoUpdate = savedOffset === null;
+
+        if (debug && !document.getElementById('afx-tuner-ui')) {
+            const tuner = document.createElement('div');
+            tuner.id = 'afx-tuner-ui';
+            if (activeEffect === 'debug') tuner.classList.add('active');
+
+            tuner.innerHTML = `
+                <div style="font-weight: bold; color: #ff00ff; margin-bottom: 5px;">VIEWPORT TUNER</div>
+                <input type="range" id="afx-tuner-range" min="-300" max="300" value="${initialOffset}">
+                <div style="margin: 5px 0 10px;">OFFSET: <span id="afx-tuner-offset-val" class="val">0</span>px</div>
+                <div style="font-size: 10px; opacity: 0.7; margin-bottom: 5px; line-height: 1.4;">
+                    IO-HEADER: <span id="afx-tuner-header-val">0</span>px<br>
+                    TOTAL ADJ: <span id="afx-tuner-total-val" class="val">0</span>px
+                </div>
+            `;
+            const stack = document.getElementById('afx-controls-stack-right');
+            const clearStorageContainer = document.getElementById('afx-clear-storage-container');
+            if (stack) {
+                if (clearStorageContainer) {
+                    stack.insertBefore(tuner, clearStorageContainer);
+                } else {
+                    stack.insertBefore(tuner, stack.lastElementChild);
+                }
+            } else {
+                document.body.appendChild(tuner);
+            }
+
+            // Stop propagation on tuner
+            ['touchstart', 'touchend', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(evt => {
+                tuner.addEventListener(evt, (e) => e.stopPropagation(), { passive: false });
+            });
+
+            const slider = document.getElementById('afx-tuner-range');
+            slider.oninput = () => {
+                this.tunerAutoUpdate = false;
+                this.tunerOffset = parseInt(slider.value);
+                localStorage.setItem('ankifx_tuner_offset', slider.value);
+                this.updateTuner();
+            };
+        }
 
         // Initial update
         this.updateTuner();
 
-        // Monitor --io-header for changes (e.g. AnkiMobile delayed set)
+        // Monitor --io-header and layout dimensions for changes (e.g. AnkiMobile delayed set/squeeze)
         let lastHeader = header;
+        let lastWinHeight = window.innerHeight;
+        let lastDocHeight = document.documentElement.clientHeight;
+
         const monitorIv = setInterval(() => {
             const currentStyle = getComputedStyle(document.documentElement);
             const currentHeader = parseInt(currentStyle.getPropertyValue('--io-header')) || 0;
-            if (currentHeader !== lastHeader) {
+            const currentWinHeight = window.innerHeight;
+            const currentDocHeight = document.documentElement.clientHeight;
+
+            if (currentHeader !== lastHeader || currentWinHeight !== lastWinHeight || currentDocHeight !== lastDocHeight) {
                 lastHeader = currentHeader;
+                lastWinHeight = currentWinHeight;
+                lastDocHeight = currentDocHeight;
+
                 if (this.tunerAutoUpdate) {
-                    this.tunerOffset = -currentHeader;
+                    this.tunerOffset = 0;
+                    const slider = document.getElementById('afx-tuner-range');
+                    if (slider) slider.value = 0;
                 }
                 this.updateTuner();
             }
@@ -210,10 +304,40 @@ export class AnkiFX {
         const style = getComputedStyle(document.documentElement);
         const header = parseInt(style.getPropertyValue('--io-header')) || 0;
 
-        const offset = this.tunerOffset !== undefined ? this.tunerOffset : (savedOffset !== null ? parseInt(savedOffset) : -header);
+        const offset = this.tunerOffset !== undefined ? this.tunerOffset : (savedOffset !== null ? parseInt(savedOffset) : 0);
+        
         const total = offset + header;
 
+        // Update tuner UI values if visible
+        const offsetVal = document.getElementById('afx-tuner-offset-val');
+        const headerVal = document.getElementById('afx-tuner-header-val');
+        const totalVal = document.getElementById('afx-tuner-total-val');
+        const slider = document.getElementById('afx-tuner-range');
+
+        if (slider) {
+            slider.value = offset;
+        }
+        if (offsetVal) {
+            offsetVal.innerText = offset >= 0 ? `+${offset}` : offset;
+        }
+        if (headerVal) {
+            headerVal.innerText = header;
+        }
+        if (totalVal) {
+            totalVal.innerText = total >= 0 ? `+${total}` : total;
+        }
+
+        // Restore pristine 6c1ab7a9581a20544b286fa1612295a16c43b63d tuner height to ensure the canvas perfectly matches the visible document bounds
         document.documentElement.style.setProperty('--tuner-height', `calc(100dvh + ${total}px)`);
+
+        // Dynamically compute the EXACT bottom covered height (winHeight - docHeight) to offset controls overlay only when actually overlayed
+        const winHeight = window.innerHeight;
+        const docHeight = document.documentElement.clientHeight;
+        const bottomCovered = Math.max(0, winHeight - docHeight);
+        document.documentElement.style.setProperty('--afx-bottom-offset', `${bottomCovered}px`);
+
+        // Trigger immediate canvas resizing based on new tuner-height bounding rect
+        this.handleResize();
 
         // Re-trigger resize on effects if they have custom resize logic
         if (this.currentEffectId && EFFECTS[this.currentEffectId]?.onResize) {
@@ -229,7 +353,10 @@ export class AnkiFX {
 
         const rect = background.getBoundingClientRect();
         this.width = rect.width;
-        this.height = rect.height;
+
+        const style = getComputedStyle(document.documentElement);
+        const ioHeader = parseInt(style.getPropertyValue('--io-header')) || 0;
+        this.height = document.documentElement.clientHeight + ioHeader; // Lock globally to visible document bottom bounds!
         this.dpr = Math.min(window.devicePixelRatio || 1, 2);
 
         const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -649,10 +776,13 @@ export class AnkiFX {
                     ecgTriggerContainer.style.display = newEffect === 'ecg' ? 'flex' : 'none';
                 }
 
+                const tuner = document.getElementById('afx-tuner-ui');
                 if (newEffect === 'debug') {
                     overlay.classList.add('afx-debug-active');
+                    if (tuner) tuner.classList.add('active');
                 } else {
                     overlay.classList.remove('afx-debug-active');
+                    if (tuner) tuner.classList.remove('active');
                 }
                 AnkiFX.startEffect(config, background, config.marqueePosition, newEffect);
 
@@ -759,6 +889,8 @@ export class AnkiFX {
         if (effect) {
             const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
             const effectDpr = (activeEffect === 'mandelbrot' || activeEffect === 'julia') ? glDpr : this.dpr;
+            const style = getComputedStyle(document.documentElement);
+            const ioHeader = parseInt(style.getPropertyValue('--io-header')) || 0;
             const sharedContexts = {
                 gl: this.glContext,
                 ctx2d: this.ctx2D,
@@ -766,7 +898,15 @@ export class AnkiFX {
                 canvas2D: this.shared2D,
                 width: this.width,
                 height: this.height,
-                dpr: effectDpr
+                dpr: effectDpr,
+                // --- EXPLICIT VISIBLE BOUNDS FOR EFFECTS ---
+                topInset: ioHeader,
+                visibleWidth: this.width,
+                visibleHeight: this.height - ioHeader,
+                visibleBounds: {
+                    top: ioHeader,
+                    bottom: this.height
+                }
             };
             this.currentEffectId = activeEffect;
 
@@ -833,7 +973,7 @@ export class AnkiFX {
         }
 
         // Clean up DOM elements
-        ['ankifx-overlay', 'ankifx-background', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
+        ['ankifx-overlay', 'ankifx-background', 'afx-tuner-ui', 'afx-btn-back', 'afx-btn-skip'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.remove();
         });
@@ -894,6 +1034,16 @@ export class AnkiFX {
 
             if (this.marquee && this.ctxMarquee) {
                 this.ctxMarquee.clearRect(0, 0, this.width, this.height);
+                
+                // Allow active effect to draw full-resolution overlays (e.g. stars) on top of blurred canvas
+                if (this.currentEffectId && EFFECTS[this.currentEffectId]?.drawOverlay) {
+                    try {
+                        EFFECTS[this.currentEffectId].drawOverlay(this.ctxMarquee, this.width, this.height, timestamp);
+                    } catch (e) {
+                        console.error("AnkiFX overlay error:", e);
+                    }
+                }
+
                 this.marquee.render(this.ctxMarquee, this.width, this.height);
             }
             this.marqueeInterval = requestAnimationFrame(tick);

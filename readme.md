@@ -177,8 +177,11 @@ export const effect = {
         // Entry point. 'contexts' provides shared access to:
         // - contexts.gl: WebGL context (afx-shared-gl)
         // - contexts.ctx2d: Canvas2D context (afx-shared-2d)
-        // - contexts.width / contexts.height: Scaled dimensions
+        // - contexts.width / contexts.height: Scaled canvas dimensions (aligned to visible doc bottom)
         // - contexts.dpr: Device Pixel Ratio
+        // - contexts.topInset: Pixel height of Anki's top status bar/header (--io-header)
+        // - contexts.visibleWidth / contexts.visibleHeight: True visible dimensions (excluding safe insets)
+        // - contexts.visibleBounds: Object { top: contexts.topInset, bottom: contexts.height }
     },
 
     stop() {

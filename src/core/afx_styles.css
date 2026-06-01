@@ -45,11 +45,7 @@ html.afx-effect-none #afx-shared-2d {
 
 /* --- Aurora Visual Polish: Low-Res Smoothing --- */
 #afx-shared-2d.afx-aurora-active {
-    filter: blur(8px);
-    width: 12.5% !important;
-    height: 12.5% !important;
-    transform: scale(8.1) !important;
-    transform-origin: top left !important;
+    filter: blur(8px) contrast(1.2);
 }
 
 html,
@@ -124,6 +120,7 @@ body>*,
     background: rgba(0, 0, 0, 0.25);
     transition: background 0.5s ease, opacity 0.5s ease;
     padding: 1rem;
+    padding-bottom: calc(1rem + var(--afx-bottom-offset, 0px)) !important;
     box-sizing: border-box;
     color: #fff;
 }
@@ -191,7 +188,7 @@ body>*,
 }
 
 .afx-dual-control-stack {
-    bottom: 20px;
+    bottom: calc(20px + var(--afx-bottom-offset, 0px)) !important;
     left: 20px;
     align-items: flex-start;
     background: transparent !important;
@@ -201,7 +198,7 @@ body>*,
 }
 
 #afx-controls-stack-right {
-    bottom: 20px;
+    bottom: calc(20px + var(--afx-bottom-offset, 0px)) !important;
     right: 20px;
     align-items: flex-end;
 }
@@ -244,12 +241,12 @@ body>*,
     }
 
     .afx-dual-control-stack {
-        bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+        bottom: calc(10px + env(safe-area-inset-bottom) + var(--afx-bottom-offset, 0px)) !important;
         left: calc(10px + env(safe-area-inset-left)) !important;
     }
 
     #afx-controls-stack-right {
-        bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+        bottom: calc(10px + env(safe-area-inset-bottom) + var(--afx-bottom-offset, 0px)) !important;
         right: calc(10px + env(safe-area-inset-right)) !important;
     }
 }
@@ -439,4 +436,46 @@ input:checked+.afx-slider:before {
 /* Hide card content container during active DEBUG effect to avoid jumble */
 html.afx-effect-debug #qa {
     display: none !important;
+}
+
+#afx-tuner-ui {
+    position: relative;
+    z-index: 99999;
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid var(--afx-accent);
+    padding: 15px;
+    border-radius: 15px;
+    font-family: 'Courier New', monospace;
+    color: white;
+    display: none !important;
+    width: 240px;
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.2);
+    pointer-events: auto !important;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Only show tuner when BOTH active (debug effect selected) AND agreed (disclaimer accepted) */
+html.afx-agreed #afx-tuner-ui.active {
+    display: flex !important;
+}
+
+#afx-tuner-ui input {
+    width: 100%;
+    margin: 12px 0;
+    accent-color: var(--afx-accent);
+}
+
+#afx-tuner-ui .val {
+    font-weight: bold;
+    color: var(--afx-accent);
+}
+
+#afx-tuner-ui .stat {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-top: 4px;
+    display: block;
 }

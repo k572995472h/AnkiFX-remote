@@ -68,8 +68,12 @@ git commit -m "feat: added new visual effect loader"
 ```
 *(The automated hook will run immediately, compiling the asset and creating a `build: compile build for...` commit).*
 
-### 5. Merge back to Main
-Once your changes are fully verified on desktop and mobile and you are ready to publish:
+### 5. Merge back to Main (USER APPROVAL MANDATORY)
+
+> [!IMPORTANT]
+> **NEVER automatically merge the feature branch into `main` or push to remote `main`.** You MUST present the final code/fix in the chat, wait for the user to review and explicitly approve it, and only merge/push once the user explicitly grants permission.
+
+Once your changes are fully verified and the user has explicitly approved the merge:
 ```bash
 git checkout main
 git merge feat/my-new-feature

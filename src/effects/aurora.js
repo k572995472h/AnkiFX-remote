@@ -2,24 +2,39 @@
 
 let stars = [];
 let ff = null;
-let tileSize = 40;
-let tileRatio = 2;
+let tileSize = 60;
+let tileRatio = 1.5;
 
 export const effect = {
     id: 'aurora',
     name: 'Aurora',
     run: runAurora,
     stop: stopAurora,
+    drawOverlay: drawOverlay,
     onResize: (w, h) => {
-        // Render at 1/8th resolution for the "smooth/cloudy" look
+        const style = getComputedStyle(document.documentElement);
+        const topInset = parseInt(style.getPropertyValue('--io-header')) || 0;
+        const visibleH = h - topInset;
+
         currentW = w / 8;
-        currentH = h / 8;
+        currentH = visibleH / 8;
         if (ff) {
-            const cols = Math.ceil(currentW / (tileSize / 8));
-            const rows = Math.ceil(currentH / ((tileSize * tileRatio) / 8));
+            const localTileSize = tileSize / 8;
+            const cols = Math.ceil(currentW / localTileSize);
+            const rows = Math.ceil(currentH / (localTileSize * tileRatio));
             ff.w = cols;
             ff.h = rows;
             ff.build();
+        }
+
+        if (currentCanvas) {
+            currentCanvas.style.width = currentW + 'px';
+            currentCanvas.style.height = currentH + 'px';
+            currentCanvas.style.position = 'absolute';
+            currentCanvas.style.top = topInset + 'px';
+            currentCanvas.style.left = '0';
+            currentCanvas.style.transform = 'scale(8)';
+            currentCanvas.style.transformOrigin = 'top left';
         }
     },
     marqueeFont: {
@@ -31,7 +46,7 @@ export const effect = {
 
 let animationId = null;
 let currentW, currentH;
-let currentCanvas = null; // --- Capture for cleanup ---
+let currentCanvas = null;
 let time = 0;
 let lastStep = 0;
 let mouse = { x: -1000, y: -1000 };
@@ -157,9 +172,9 @@ function initStars() {
         stars.push({
             x: Math.random(),
             y: Math.random(),
-            size: 0.5 + Math.random() * 1.5,
-            opacity: 0.1 + Math.random() * 0.8,
-            blinkSpeed: 0.001 + Math.random() * 0.002, // SLOWER TWINKLE
+            size: 0.5 + Math.random() * 1.3,
+            opacity: 0.15 + Math.random() * 0.75,
+            blinkSpeed: 0.001 + Math.random() * 0.002,
             blinkOffset: Math.random() * Math.PI * 2
         });
     }
@@ -178,19 +193,29 @@ function updateMouse(e) {
 export function runAurora(contexts, config) {
     const ctx = contexts.ctx2d;
     
-    // Apply smoothing class to canvas
     currentCanvas = contexts.canvas2D;
     currentCanvas.classList.add('afx-aurora-active');
 
-    // Set internal dimensions to 1/8th for the "low quality" buffer effect
+    const topInset = contexts.topInset || 0;
+    const visibleH = contexts.visibleHeight || contexts.height;
+
+    // Set internal dimensions to 1/8th for the low quality buffer effect
     currentW = contexts.width / 8;
-    currentH = contexts.height / 8;
+    currentH = visibleH / 8;
     
-    // Adjust backbuffer size
     currentCanvas.width = currentW * contexts.dpr;
     currentCanvas.height = currentH * contexts.dpr;
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset before scale
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(contexts.dpr, contexts.dpr);
+
+    // Apply GPU-accelerated lowres scale transform constrained precisely to the visible bounds
+    currentCanvas.style.width = currentW + 'px';
+    currentCanvas.style.height = currentH + 'px';
+    currentCanvas.style.position = 'absolute';
+    currentCanvas.style.top = topInset + 'px';
+    currentCanvas.style.left = '0';
+    currentCanvas.style.transform = 'scale(8)';
+    currentCanvas.style.transformOrigin = 'top left';
 
     initStars();
     
@@ -217,7 +242,7 @@ export function runAurora(contexts, config) {
         const blue = Math.round((50 * xmove) + (30 * ymove) + (40 - (0.5 * y * heightColorScaling)) + (0.5 * y * heightColorScaling));
         
         ctx.fillStyle = `rgba(${red}, ${green}, ${blue}, 0.8)`;
-        ctx.fillRect(x * ctxScale.x, y * ctxScale.y, ctxScale.x + 0.5, ctxScale.y + 0.5); // Add 0.5 to avoid gaps
+        ctx.fillRect(x * ctxScale.x, y * ctxScale.y, ctxScale.x + 0.5, ctxScale.y + 0.5);
     };
 
     ff.manipulateVector = (vector, x, y) => {
@@ -226,7 +251,6 @@ export function runAurora(contexts, config) {
             y: (y * ctxScale.y) + (0.5 * ctxScale.y)
         };
         
-        // Scale mouse to match the 1/8th internal resolution
         const mouseX = mouse.x / 8;
         const mouseY = mouse.y / 8;
 
@@ -255,23 +279,30 @@ export function runAurora(contexts, config) {
         ctx.fillStyle = '#020b1a';
         ctx.fillRect(0, 0, currentW, currentH);
 
-        // Render Stars
-        ctx.fillStyle = '#ffffff';
-        stars.forEach(star => {
-            const blink = (Math.sin(timestamp * star.blinkSpeed + star.blinkOffset) + 1) / 2;
-            ctx.globalAlpha = star.opacity * blink;
-            ctx.beginPath();
-            ctx.arc(star.x * currentW, star.y * currentH, star.size, 0, Math.PI * 2);
-            ctx.fill();
-        });
-        ctx.globalAlpha = 1.0;
-
         // Update and Render FlowField
         ff.update(delta);
 
         animationId = requestAnimationFrame(render);
     }
     animationId = requestAnimationFrame(render);
+}
+
+export function drawOverlay(ctx, w, h, timestamp) {
+    // Render Stars crisp & twinkling on the high-resolution overlay canvas strictly within the visible document
+    const style = getComputedStyle(document.documentElement);
+    const topInset = parseInt(style.getPropertyValue('--io-header')) || 0;
+    const visibleH = h - topInset;
+
+    ctx.fillStyle = '#ffffff';
+    stars.forEach(star => {
+        const blink = (Math.sin(timestamp * star.blinkSpeed + star.blinkOffset) + 1) / 2;
+        ctx.globalAlpha = star.opacity * blink;
+        ctx.beginPath();
+        const starY = topInset + star.y * visibleH;
+        ctx.arc(star.x * w, starY, star.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1.0;
 }
 
 export function stopAurora() {
@@ -283,14 +314,18 @@ export function stopAurora() {
     window.removeEventListener('touchstart', updateMouse);
     window.removeEventListener('touchmove', updateMouse);
 
-    // 1. Remove the smoothing class FIRST to release CSS overrides
     if (currentCanvas) {
         currentCanvas.classList.remove('afx-aurora-active');
+        currentCanvas.style.width = '';
+        currentCanvas.style.height = '';
+        currentCanvas.style.position = '';
+        currentCanvas.style.top = '';
+        currentCanvas.style.left = '';
+        currentCanvas.style.transform = '';
+        currentCanvas.style.transformOrigin = '';
         currentCanvas = null;
     }
 
-    // 2. Restore shared canvas resolution for other effects
-    // Use window.AnkiFX.handleResize() but check both class and window
     const AFX = window.AnkiFX;
     if (AFX && typeof AFX.handleResize === 'function') {
         AFX.handleResize();
