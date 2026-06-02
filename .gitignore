@@ -2,8 +2,9 @@ node_modules/
 build/*
 !build/card templates/
 !build/_ankifx.js
+!build/_afx_defaults.json
 .DS_Store
 *.log
 .gemini/
-configs/_afx_*.js
-!configs/_afx_example.js
+configs/_afx_*.json
+!configs/_afx_defaults.json

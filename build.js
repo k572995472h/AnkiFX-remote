@@ -40,6 +40,55 @@ const effectsRegistryPlugin = {
 };
 
 // 2. Plugin to copy only the static assets
+// Simple and robust JSON schema validation helper
+function validateConfig(config, filename) {
+    const required = ['deckTitle', 'termsText', 'marquee', 'defaultEffect'];
+    for (const field of required) {
+        if (config[field] === undefined) {
+            throw new Error(`Config validation error in ${filename}: Missing required field "${field}"`);
+        }
+    }
+    if (typeof config.deckTitle !== 'string') throw new Error(`Config validation error in ${filename}: "deckTitle" must be a string`);
+    if (typeof config.marquee !== 'string') throw new Error(`Config validation error in ${filename}: "marquee" must be a string`);
+    if (typeof config.defaultEffect !== 'string') throw new Error(`Config validation error in ${filename}: "defaultEffect" must be a string`);
+    
+    if (config.termsText !== undefined) {
+        if (!Array.isArray(config.termsText) && typeof config.termsText !== 'string') {
+            throw new Error(`Config validation error in ${filename}: "termsText" must be a string or an array of strings`);
+        }
+        if (Array.isArray(config.termsText)) {
+            for (let i = 0; i < config.termsText.length; i++) {
+                if (typeof config.termsText[i] !== 'string') {
+                    throw new Error(`Config validation error in ${filename}: "termsText[${i}]" must be a string`);
+                }
+            }
+        }
+    }
+
+
+
+    if (config.debug !== undefined && typeof config.debug !== 'boolean') throw new Error(`Config validation error in ${filename}: "debug" must be a boolean`);
+    if (config.countdown !== undefined && typeof config.countdown !== 'number') throw new Error(`Config validation error in ${filename}: "countdown" must be a number`);
+    if (config.marqueePosition !== undefined && config.marqueePosition !== 'top' && config.marqueePosition !== 'bottom') {
+        throw new Error(`Config validation error in ${filename}: "marqueePosition" must be "top" or "bottom"`);
+    }
+}
+
+// Safe UTF-8 to Base64 compiler helper
+function compileConfig(config) {
+    const compiled = { ...config };
+    let termsStr = '';
+    if (Array.isArray(compiled.termsText)) {
+        termsStr = compiled.termsText.join('\n');
+    } else {
+        termsStr = compiled.termsText || '';
+    }
+    // Encode standard UTF-8 string to base64 safely in Node.js
+    compiled.termsText = Buffer.from(termsStr, 'utf8').toString('base64');
+    return compiled;
+}
+
+// 2. Plugin to build and compile the JSON configs
 const copyStaticFilesPlugin = {
     name: 'copy-static-files',
     setup(build) {
@@ -49,26 +98,65 @@ const copyStaticFilesPlugin = {
             // Ensure build/ folder exists
             if (!fs.existsSync(buildDir)) fs.mkdirSync(buildDir, { recursive: true });
 
-            try {
-                // Auto-discover and sync all config files matching _afx_*.js
-                const configsDir = path.join(__dirname, 'configs');
-                const configs = fs.readdirSync(configsDir)
-                    .filter(f => f.startsWith('_afx_') && f.endsWith('.js'));
+            // Ensure build/configs/ folder exists (untracked)
+            const buildConfigsDir = path.join(buildDir, 'configs');
+            if (!fs.existsSync(buildConfigsDir)) fs.mkdirSync(buildConfigsDir, { recursive: true });
 
-                for (const file of configs) {
-                    fs.copyFileSync(
-                        path.join(configsDir, file),
-                        path.join(buildDir, file)
+            try {
+                const configsDir = path.join(__dirname, 'configs');
+                const defaultPath = path.join(configsDir, '_afx_defaults.json');
+
+                if (!fs.existsSync(defaultPath)) {
+                    throw new Error('Required configuration file configs/_afx_defaults.json is missing!');
+                }
+
+                // 1. Process default configuration
+                const defaultsRaw = fs.readFileSync(defaultPath, 'utf8');
+                const defaultsObj = JSON.parse(defaultsRaw);
+                validateConfig(defaultsObj, '_afx_defaults.json');
+                
+                const defaultsCompiled = compileConfig(defaultsObj);
+                fs.writeFileSync(
+                    path.join(buildDir, '_afx_defaults.json'),
+                    JSON.stringify(defaultsCompiled, null, 2),
+                    'utf8'
+                );
+                console.log('✅ Compiled build/_afx_defaults.json successfully.');
+
+                // 2. Auto-discover and compile deck-specific overrides
+                const otherConfigs = fs.readdirSync(configsDir)
+                    .filter(f => f.startsWith('_afx_') && f.endsWith('.json') && f !== '_afx_defaults.json');
+
+                for (const file of otherConfigs) {
+                    const filePath = path.join(configsDir, file);
+                    const fileRaw = fs.readFileSync(filePath, 'utf8');
+                    const fileObj = JSON.parse(fileRaw);
+                    
+                    // Validate override before merge
+                    validateConfig(fileObj, file);
+
+                    // Merge: Override defaults with deck-specific options
+                    const mergedObj = {
+                        ...defaultsObj,
+                        ...fileObj
+                    };
+
+                    const mergedCompiled = compileConfig(mergedObj);
+                    fs.writeFileSync(
+                        path.join(buildConfigsDir, file),
+                        JSON.stringify(mergedCompiled, null, 2),
+                        'utf8'
                     );
                 }
 
-                if (configs.length > 0) {
-                    console.log(`📁 Static files synced to build/ folder. (${configs.length} config${configs.length > 1 ? 's' : ''}: ${configs.join(', ')})`);
+                if (otherConfigs.length > 0) {
+                    console.log(`📁 Deck overrides compiled to build/configs/ folder. (${otherConfigs.length} config${otherConfigs.length > 1 ? 's' : ''}: ${otherConfigs.join(', ')})`);
                 } else {
-                    console.log('📁 Static files synced to build/ folder. (no configs found)');
+                    console.log('📁 Deck overrides compiled to build/configs/ folder. (no custom overrides found)');
                 }
             } catch (err) {
-                console.error('⚠️ Error copying static files:', err.message);
+                console.error('⚠️ Error processing configuration files:', err.message);
+                process.exit(1); // Fail the build process explicitly if validation/parsing fails
             }
         });
     },

@@ -115,7 +115,7 @@ body>*,
     top: 0;
     left: 0;
     width: 100%;
-    height: var(--tuner-height);
+    height: calc(var(--tuner-height) - var(--afx-bottom-offset, 0px));
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -332,8 +332,8 @@ body>*,
     align-items: center;
     text-align: center;
     position: relative;
-    height: 75dvh;
-    max-height: 90vh;
+    height: 70dvh;
+    max-height: 85%;
     overflow: hidden !important;
     pointer-events: auto !important;
 }

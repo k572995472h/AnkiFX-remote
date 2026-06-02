@@ -515,24 +515,19 @@ export class AnkiFX {
 
         let hasAgreedSession = false;
         try {
-            hasAgreedSession = sessionStorage.getItem(`ankifx_agreed_${config.deckTitle}`) === 'true';
+            hasAgreedSession = localStorage.getItem(`ankifx_agreed_${config.deckTitle}`) === 'true';
         } catch (e) { }
 
         const hasTerms = config.termsText && config.termsText.trim() !== "" && !hasAgreedSession;
         let dialogHtml = "";
 
         if (hasTerms) {
-            let sourcesHtml = config.sources.map(s => `<li>${s}</li>`).join('');
             dialogHtml = `
                 <div class="afx-dialog">
                     <div class="afx-terms">
                         <h3>${config.deckTitle}</h3>
                         ${config.deckAuthor ? `<h4 style="margin: -10px 0 15px 0; opacity: 0.7; font-size: 0.9rem;">by ${config.deckAuthor}</h4>` : ''}
-                        <p>${config.termsText}</p>
-                        ${config.sources && config.sources.length > 0 ? `
-                            <p><strong>Sources:</strong></p>
-                            <ul>${sourcesHtml}</ul>
-                        ` : ''}
+                        ${config.termsText}
                     </div>
                     <div class="afx-action-row">
                         <button id="afx-consent-btn" class="afx-btn" disabled>I AGREE</button>
@@ -795,6 +790,15 @@ export class AnkiFX {
             container.classList.remove('afx-debug-active');
         }
 
+        // Apply effect-specific class to HTML for styling (e.g., afx-effect-none)
+        const html = document.documentElement;
+        Array.from(html.classList).forEach(c => {
+            if (c.startsWith('afx-effect-')) html.classList.remove(c);
+        });
+        html.classList.add(`afx-effect-${activeEffect}`);
+
+        this.currentEffectId = activeEffect;
+
         const effect = EFFECTS[activeEffect];
         if (effect) {
             const glDpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -818,21 +822,13 @@ export class AnkiFX {
                     bottom: this.height
                 }
             };
-            this.currentEffectId = activeEffect;
-
-            // Apply effect-specific class to HTML for styling (e.g., afx-effect-none)
-            const html = document.documentElement;
-            Array.from(html.classList).forEach(c => {
-                if (c.startsWith('afx-effect-')) html.classList.remove(c);
-            });
-            html.classList.add(`afx-effect-${activeEffect}`);
 
             // Apply effect-specific marquee styling
             if (this.marquee) {
                 this.marquee.updateStyles(effect.marqueeFont || {});
             }
 
-                        effect.run(sharedContexts, config);
+            effect.run(sharedContexts, config);
 
             // Render Dynamic Controls for the active effect
             this.renderEffectControls(effect);
@@ -842,6 +838,14 @@ export class AnkiFX {
             if (this.marquee) {
                 this.marquee.enabled = marqueeEnabled;
             }
+        } else {
+            // Apply standard default marquee styling if no active effect
+            if (this.marquee) {
+                this.marquee.updateStyles({});
+            }
+
+            // Clear any dynamic controls from previous effect
+            this.renderEffectControls(null);
         }
     }
 
@@ -852,7 +856,7 @@ export class AnkiFX {
 
         if (deckTitle) {
             try {
-                sessionStorage.setItem(`ankifx_agreed_${deckTitle}`, 'true');
+                localStorage.setItem(`ankifx_agreed_${deckTitle}`, 'true');
             } catch (e) { }
         }
 

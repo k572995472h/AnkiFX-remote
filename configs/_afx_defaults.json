@@ -1,0 +1,27 @@
+{
+  "deckTitle": "AnkiFX Example Deck",
+  "deckAuthor": "Anonymous Creator",
+  "termsText": [
+    "<div style=\"text-align:center; margin-bottom: 1rem;\">",
+    "    <span style=\"font-size: 3rem;\">🪄</span>",
+    "</div>",
+    "Welcome to the <strong>AnkiFX</strong> demonstration config. ",
+    "This modal is completely optional and can be used for attribution, ",
+    "instructions, or just a stylish welcome screen.",
+    "<ul style=\"margin-top: 1rem; padding-left: 1.5rem; text-align: left;\">",
+    "    <li>All effects are performance-optimized for mobile.</li>",
+    "    <li>Music is provided via the Keygen Jukebox.</li>",
+    "    <li>Toggle debug: true in configs to reveal developer clear-storage utilities.</li>",
+    "</ul>",
+    "<p><strong>Sources:</strong></p>",
+    "<ul>",
+    "    <li>AnkiFX Core Engine</li>",
+    "    <li>Community Effects Registry</li>",
+    "</ul>"
+  ],
+  "marquee": "GREETINGS FROM ANKIFX ... A MODULAR VISUAL ENGINE FOR ANKI ... TRY SWITCHING EFFECTS IN THE BOTTOM RIGHT ... ENJOY THE TRACKER MUSIC ... STAY FOCUSED ... STUDY HARD ...",
+  "defaultEffect": "geometry",
+  "debug": false,
+  "countdown": 30,
+  "marqueePosition": "top"
+}

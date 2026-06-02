@@ -6,7 +6,7 @@
 
 AnkiFX is a modular visual rendering and retro tracker-audio engine for Anki card templates.
 
-Honestly, it started as a fun side project powered entirely by AI "vibe coding" (and burning through free Gemini credits) to see how far we could push modern WebGL, Canvas2D, and JS tracker-audio contexts inside a mobile-optimized Anki WebView. Originally built to cure the boredom of native templates and add some serious aesthetic flair to impress classmates, it turned out to be too fun not to share. 
+Honestly, it started as a fun side project powered entirely by AI "vibe coding" (and burning through free Gemini credits) to see how far we could push modern WebGL, Canvas2D, and JS tracker-audio contexts inside a mobile-optimized Anki WebView. Originally built to cure the boredom of native templates and add some serious aesthetic flair to impress classmates, it turned out to be too fun not to share.
 
 Now, the project is open to the public so anyone can inject stunning, high-performance background visualizers, retro keygen music, and interactive overlays directly into their Anki flashcards. Your templates remain completely clean, merely loading a deck-specific **Configuration Payload** and the global **AnkiFX Engine**.
 
@@ -30,7 +30,7 @@ Now, the project is open to the public so anyone can inject stunning, high-perfo
     *   *Starfield*: Multi-layer parallax star field.
     *   *Tetris*: Fully functional background Tetris simulation.
     *   *Debug*: Diagnostic effect for viewport calibration.
-*   **Keygen Jukebox (v2)**: Pure JavaScript tracker music player powered by [`funkymed-flod-module-player`](https://www.npmjs.com/package/funkymed-flod-module-player).
+*   **Keygen Jukebox**: Pure JavaScript tracker music player powered by [`funkymed-flod-module-player`](https://www.npmjs.com/package/funkymed-flod-module-player).
     *   **Effect-Music Association**: Effects can specify a `preferredTrack` to automatically switch to a thematically appropriate track.
     *   **Playback History**: 50-track stack with navigation (`⏮️` / `⏭️`) and async race protection.
 *   **Modular Attribution Dialog**: A built-in modal for deck attribution and terms of service. It's strictly opt-in; if no `termsText` is provided in the config, the engine boots directly into effects.
@@ -60,12 +60,13 @@ ankifx/
  │   │   └─ ...
  │   └─ index.js                  # Entry point, bundles to window.AnkiFX
  ├─ configs/
- │   ├─ _afx_example.js           # Publicly shared configuration template
- │   └─ _afx_*.js                 # [GIT-IGNORED] Your private deck configurations
+ │   ├─ _afx_defaults.json        # Publicly shared configuration template
+ │   └─ _afx_*.json               # [GIT-IGNORED] Your private deck configurations
  ├─ build/                        # Compiled "Anki Simulator" folder
  │   ├─ _ankifx.js                # Combined, minified engine + CSS
- │   └─ _afx_*.js                 # Synced config files
- ├─ build.js                      # esbuild pipeline with auto-registry & config sync
+ │   ├─ _afx_defaults.json        # Compiled default config file
+ │   └─ configs/                  # [GIT-IGNORED] Untracked compiled deck overrides
+ ├─ build.js                      # esbuild pipeline with JSON validation, base64 encoding & merging
  └─ package.json
 ```
 
@@ -97,32 +98,40 @@ To edit visual effects, customize layouts, or compile the codebase locally:
 
 AnkiFX utilizes a deck-specific configuration payload to populate attribution details, terms and conditions, a scrolling marquee text, and startup visualizer preferences.
 
-With our unified card design, **you no longer need separate Note Types for different decks.** Instead, a single Note Type is dynamically customized on a per-deck basis using the mandatory `AfxConfig` note field.
+With our unified card design, **you no longer need separate Note Types for different decks.** Instead, a single Note Type is dynamically customized on a per-deck basis using the mandatory `AnkiFXConfig` note field.
 
-### 1. The Mandatory `AfxConfig` note field
-To configure a deck to use a custom payload, your Note Type **must** contain a field named `AfxConfig`. 
+### 1. The Mandatory `AnkiFXConfig` note field
+To configure a deck to use a custom payload, your Note Type **must** contain a field named `AnkiFXConfig`. 
 
-- **For Custom Configurations (e.g. Medicine):** Set the `AfxConfig` field to point to your custom script via a hidden `<img>` tag:
-  ```html
-  <img src="_afx_medicine.js" style="display: none !important;">
+- **For Custom Configurations (e.g. Medicine):** Set the `AnkiFXConfig` field directly to your compiled JSON payload (which you can copy from your compiled `/build/configs/` folder, where `termsText` is automatically base64-encoded for secure rendering and privacy):
+  ```json
+  {
+      "deckTitle": "Medicine Study Deck",
+      "termsText": "PGRpdiBzdHlsZT0idGV4dC1hbGlnbjpjZW50ZXI7Ij7wn6epPC9kaXY+",
+      "marquee": "MEDICINE STUDY MODE ACTIVE ...",
+      "defaultEffect": "ecg"
+  }
   ```
-- **For the Default/Example Config:** Leave the `AfxConfig` field blank. It will automatically load the default `_afx_example.js` config.
+- **For the Default/Example Config:** Leave the `AnkiFXConfig` field blank. It will automatically load the default fallback `_afx_defaults.json` config.
 
 > [!IMPORTANT]
-> **Why this HTML tag is required inside the field:** Anki's media engine scans note fields to determine which files to sync to mobile (AnkiMobile/AnkiDroid) or package in `.apkg` deck exports. Storing your config file inside a hidden `<img>` tag directly in this field ensures Anki **automatically syncs it and permanently protects it from being deleted** during "Check Media" cleanups, with zero manual list-tracking in card templates!
+> **No more file clutter & image tags:** Since configurations are stored directly in your note database via the `AnkiFXConfig` field, you **no longer need custom `.js` config files in collection.media**, nor do you need to tag invisible images to force syncing. Synchronization is completely automatic!
 
 ---
 
 ### 2. Creating Private Deck Configurations
 To customize AnkiFX for a specific deck:
-1. Create a new JavaScript file under `configs/` prefixed with `_afx_` (e.g., `configs/_afx_medicine.js`).
-2. Populate it using the `window.AnkiFX_Config` object format (shown in the template below).
-*   **Git Protection**: All files under `configs/` matching `_afx_*.js` (except the public `_afx_example.js`) are git-ignored to prevent accidental leaks of private credentials.
+1. Create a new strict JSON file under `configs/` prefixed with `_afx_` (e.g., `configs/_afx_medicine.json`).
+2. Populate it using strict JSON (keys and string values in double quotes).
+*   **Git Protection**: All files under `configs/` matching `_afx_*.json` (except the public `_afx_defaults.json`) are git-ignored to prevent accidental leaks of private credentials.
+*   **Deck Merging**: Custom configs only need to specify fields they want to override. During `npm run build`, overrides are automatically merged over `_afx_defaults.json` and saved in `build/configs/`.
 
 ---
 
-### 3. Terms Disclaimer & Countdown Lockout
-*   **Disclaimer Modal**: Populating `termsText` in your config triggers an overlay modal on card load. If empty, the engine boots instantly into visualizers.
+### 3. Terms Disclaimer & Base64 Compiling
+*   **HTML in JSON (Array of Strings)**: To make editing multiline HTML inside strict JSON highly readable, the `termsText` field is authored as a JSON array of strings, which are merged automatically with newlines during compilation.
+*   **Build-time Base64 Encoding & Privacy**: During local builds, `build.js` validates your JSON files, joins the `termsText` array with newlines, and **automatically base64-encodes the HTML**. This creates a secure, robust JSON payload that is 100% resilient to Anki WebView encoding glitches, and has the brilliant benefit of **obfuscating deck disclaimers, references, and author credits for privacy** (keeping them secure from casual lookups in the compiled deck files).
+*   **Runtime Decoding**: At runtime on the card, the loader script automatically runs `atob()` to decode the base64 string back into pure HTML before passing it to the visualizer overlay.
 *   **Forced Read Countdown**: Specifying `countdown` (seconds) locks the "I AGREE" button, forcing users to wait and read.
 
 ---
@@ -135,48 +144,38 @@ Since `termsText` is a template literal, you can embed standard HTML tags:
 
 ---
 
-### 5. Configuration Template (`_afx_example.js`)
+### 5. Configuration Template (`_afx_defaults.json`)
 
-Below is the standard configuration template showcasing all available parameters:
+Below is the default configuration template showcasing all available parameters (in strict JSON with the array-of-strings formatting):
 
-```javascript
-window.AnkiFX_Config = {
-    deckTitle: "AnkiFX Example Deck",
-    deckAuthor: "Anonymous Creator",
-
-    // The optional disclaimer text. Remove or set to "" to skip the modal entirely.
-    termsText: `
-        <div style="text-align:center; margin-bottom: 1rem;">
-            <span style="font-size: 3rem;">🪄</span>
-        </div>
-        Welcome to the <strong>AnkiFX</strong> demonstration config. 
-        This modal is completely optional and can be used for attribution, 
-        instructions, or just a stylish welcome screen.
-        <ul style="margin-top: 1rem; padding-left: 1.5rem; text-align: left;">
-            <li>All effects are performance-optimized for mobile.</li>
-            <li>Music is provided via the Keygen Jukebox (v2).</li>
-            <li>Toggle debug: true in configs to reveal developer clear-storage utilities.</li>
-        </ul>
-    `,
-
-    // Automatically formatted into the "Sources" section at the bottom of the terms
-    sources: [
-        "AnkiFX Core Engine",
-        "Community Effects Registry"
-    ],
-
-    // Scrolling text at the top/bottom of your screens
-    marquee: "GREETINGS FROM ANKIFX ... A MODULAR VISUAL ENGINE FOR ANKI ... TRY SWITCHING EFFECTS IN THE BOTTOM RIGHT ...",
-
-    // Default visualizer on boot (e.g. geometry, fire, aurora, julia, lavalamp, none)
-    defaultEffect: "geometry",
-
-    // --- OPTIONAL PREFERENCES ---
-
-    // debug: false,           // Set to true to bypass disclaimer countdowns and reveal developer utilities (like Clear Storage)
-    // countdown: 30,          // Time in seconds the user must wait before they can click "I AGREE"
-    // marqueePosition: "top", // Position of the text ticker: "top" or "bottom"
-};
+```json
+{
+  "deckTitle": "AnkiFX Example Deck",
+  "deckAuthor": "Anonymous Creator",
+  "termsText": [
+    "<div style=\"text-align:center; margin-bottom: 1rem;\">",
+    "    <span style=\"font-size: 3rem;\">🪄</span>",
+    "</div>",
+    "Welcome to the <strong>AnkiFX</strong> demonstration config. ",
+    "This modal is completely optional and can be used for attribution, ",
+    "instructions, or just a stylish welcome screen.",
+    "<ul style=\"margin-top: 1rem; padding-left: 1.5rem; text-align: left;\">",
+    "    <li>All effects are performance-optimized for mobile.</li>",
+    "    <li>Music is provided via the Keygen Jukebox.</li>",
+    "    <li>Toggle debug: true in configs to reveal debug utilities.</li>",
+    "</ul>",
+    "<p><strong>Sources:</strong></p>",
+    "<ul>",
+    "    <li>AnkiFX Core Engine</li>",
+    "    <li>Community Effects Registry</li>",
+    "</ul>"
+  ],
+  "marquee": "GREETINGS FROM ANKIFX ... A MODULAR VISUAL ENGINE FOR ANKI ... TRY SWITCHING EFFECTS IN THE BOTTOM RIGHT ... ENJOY THE TRACKER MUSIC ... STAY FOCUSED ... STUDY HARD ...",
+  "defaultEffect": "geometry",
+  "debug": false,
+  "countdown": 30,
+  "marqueePosition": "top"
+}
 ```
 
 ---
@@ -190,37 +189,57 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 ### Step-by-Step Hybrid Deployment
 
 1. Run `npm run build`.
-2. Copy `_ankifx.js`, `_afx_example.js`, and your customized config payloads (e.g. `_afx_medicine.js`) from the `build/` directory to your Anki `collection.media` folder.
+2. Copy `_ankifx.js` and `_afx_defaults.json` from the `build/` directory to your Anki `collection.media` folder.
 3. Paste the following robust loader script into your Anki Card Front Template:
 
 ```html
 <!-- Hidden container for the custom Note field -->
-<div id="afx-config-field" style="display: none !important;">{{AfxConfig}}</div>
+<div id="afx-config-field" style="display: none !important;">{{AnkiFXConfig}}</div>
 
 <script>
     (function() {
         var fieldContainer = document.getElementById("afx-config-field");
-        var imgElement = fieldContainer ? fieldContainer.querySelector("img") : null;
-        var configScript = "_afx_example.js"; // Default fallback
-        
-        if (imgElement) {
-            var rawSrc = imgElement.getAttribute("src") || "";
-            var filename = rawSrc.substring(rawSrc.lastIndexOf('/') + 1);
-            if (filename && filename.startsWith("_afx_") && filename.endsWith(".js")) {
-                configScript = filename;
+        var configText = fieldContainer ? fieldContainer.textContent.trim() : "";
+        var parsed = false;
+
+        function decodeConfig(config) {
+            if (config && typeof config.termsText === 'string') {
+                try {
+                    config.termsText = decodeURIComponent(escape(atob(config.termsText)));
+                } catch (e) {
+                    console.error("AnkiFX: Failed to decode termsText base64 string.", e);
+                }
+            }
+            return config;
+        }
+
+        if (configText) {
+            try {
+                window.AnkiFX_Config = decodeConfig(JSON.parse(configText));
+                parsed = true;
+            } catch (e) {
+                console.error("AnkiFX: Failed to parse embedded AnkiFXConfig JSON. Falling back to _afx_defaults.json. Error:", e);
             }
         }
-        
-        // Dynamically load the resolved configuration script
-        var script = document.createElement('script');
-        script.src = configScript;
-        script.onerror = function() {
-            console.warn("AnkiFX: Config script '" + configScript + "' failed to load. Falling back to default.");
-            var fallback = document.createElement('script');
-            fallback.src = "_afx_example.js";
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(script);
+
+        if (!parsed) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "_afx_defaults.json", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200 || xhr.status === 0) {
+                        try {
+                            window.AnkiFX_Config = decodeConfig(JSON.parse(xhr.responseText));
+                        } catch (err) {
+                            console.error("AnkiFX: Failed to parse fallback _afx_defaults.json.", err);
+                        }
+                    } else {
+                        console.error("AnkiFX: Failed to load fallback _afx_defaults.json. Status: " + xhr.status);
+                    }
+                }
+            };
+            xhr.send();
+        }
     })();
 </script>
 
@@ -357,16 +376,16 @@ Every AnkiFX card template Front **must** include these exact tags somewhere in 
 
 <!-- Keep these statically in your template so Anki packages and syncs basic engines -->
 <img src="_ankifx.js" style="display:none !important;">
-<img src="_afx_example.js" style="display:none !important;">
+<img src="_afx_defaults.json" style="display:none !important;">
 ```
 
 And your Back templates should include:
 
 ```html
-<div id="afx-config-field" style="display: none !important;">{{AfxConfig}}</div>
+<div id="afx-config-field" style="display: none !important;">{{AnkiFXConfig}}</div>
 <div class="ankifx-card" style="display:none;"></div>
 <img src="_ankifx.js" style="display:none !important;">
-<img src="_afx_example.js" style="display:none !important;">
+<img src="_afx_defaults.json" style="display:none !important;">
 ```
 
 ---
