@@ -659,8 +659,12 @@ class Gradient {
         
         // If average luminance is high (light background), use dark text. Otherwise, use light text.
         const textColor = avgLuminance > 0.6 ? '#111111' : '#ffffff';
+        const textShadow = avgLuminance > 0.6 
+            ? '0 1px 2px rgba(255, 255, 255, 0.8)' 
+            : '0 1px 3px rgba(0, 0, 0, 0.9), 0 2px 10px rgba(0, 0, 0, 0.6)';
         
         document.documentElement.style.setProperty('--afx-body-color', textColor);
+        document.documentElement.style.setProperty('--afx-text-shadow', textShadow);
 
         // Dynamically style the marquee to pop and adapt to the background lightness!
         effect.marqueeFont = {
@@ -698,24 +702,20 @@ class Gradient {
 
     randomizeColors() {
         const randomHex = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-        const newHexes = [randomHex(), randomHex(), randomHex(), randomHex()];
+        const randomPalette = [randomHex(), randomHex(), randomHex(), randomHex()];
         
-        this.sectionColors = newHexes.map(hex => normalizeColor(parseInt(hex.substring(1), 16)));
-
-        if (this.uniforms) {
-            if (this.uniforms.u_baseColor) {
-                this.uniforms.u_baseColor.value = this.sectionColors[0];
-            }
-            if (this.uniforms.u_waveLayers && this.uniforms.u_waveLayers.value) {
-                for (let i = 0; i < this.uniforms.u_waveLayers.value.length; i++) {
-                    const layer = this.uniforms.u_waveLayers.value[i];
-                    if (layer && layer.value && layer.value.color) {
-                        layer.value.color.value = this.sectionColors[i + 1] || this.sectionColors[0];
-                    }
+        this.sectionColors = randomPalette.map(hex => normalizeColor(parseInt(hex.substring(1), 16)));
+        
+        if (this.uniforms && this.uniforms.u_baseColor && this.uniforms.u_waveLayers && this.uniforms.u_waveLayers.value) {
+            this.uniforms.u_baseColor.value = this.sectionColors[0];
+            for (let i = 0; i < this.uniforms.u_waveLayers.value.length; i++) {
+                const layer = this.uniforms.u_waveLayers.value[i];
+                if (layer && layer.value && layer.value.color) {
+                    layer.value.color.value = this.sectionColors[i + 1] || this.sectionColors[0];
                 }
             }
         }
-
+        
         this.updateThemeAwareText();
     }
 
@@ -767,6 +767,7 @@ export const effect = {
             gradientInstance = null;
         }
         document.documentElement.style.removeProperty('--afx-body-color');
+        document.documentElement.style.removeProperty('--afx-text-shadow');
     },
     onResize: (w, h, dpr) => {
         if (gradientInstance) {

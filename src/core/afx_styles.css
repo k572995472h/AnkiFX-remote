@@ -9,6 +9,7 @@
     --afx-btn-font-size: 15px;
     --afx-body-bg: #000;
     --afx-body-color: #fff;
+    --afx-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 2px 10px rgba(0, 0, 0, 0.6);
     --afx-none-bg: var(--afx-bg-color, black);
 }
 
@@ -17,6 +18,7 @@
 html.afx-effect-none {
     --afx-body-bg: #f5f5f5;
     --afx-body-color: #000000;
+    --afx-text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 /* Detect Anki Night Mode / System Dark Preference */
@@ -28,6 +30,7 @@ body.nightMode .afx-effect-none,
 body.night_mode .afx-effect-none {
     --afx-body-bg: #2c2c2c;
     --afx-body-color: #ffffff;
+    --afx-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
 /* Hide canvases when NO effect is selected to allow CSS background to show */

@@ -47,6 +47,40 @@ export class AnkiFX {
                     qa.style.zIndex = "10";
                 }
 
+                // Restore persistent Canvas and WebGL contexts if null (Anki script re-evaluation)
+                if (!this.sharedGL) this.sharedGL = document.getElementById('afx-shared-gl');
+                if (!this.shared2D) this.shared2D = document.getElementById('afx-shared-2d');
+                if (!this.sharedMarquee) this.sharedMarquee = document.getElementById('afx-shared-marquee');
+                
+                if (this.sharedGL && !this.glContext) {
+                    this.glContext = this.sharedGL.getContext('webgl', { alpha: false, antialias: false });
+                }
+                if (this.shared2D && !this.ctx2D) {
+                    this.ctx2D = this.shared2D.getContext('2d');
+                }
+                if (this.sharedMarquee && !this.ctxMarquee) {
+                    this.ctxMarquee = this.sharedMarquee.getContext('2d');
+                }
+                
+                // Restore dimensions from persistent background rect
+                const background = document.getElementById('ankifx-background');
+                if (background) {
+                    const rect = background.getBoundingClientRect();
+                    this.width = rect.width;
+                    const style = getComputedStyle(document.documentElement);
+                    const ioHeader = parseInt(style.getPropertyValue('--io-header')) || 0;
+                    this.height = document.documentElement.clientHeight + ioHeader;
+                    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+                }
+
+                // Restore active effect tracking
+                if (!this.currentEffectId) {
+                    const activeClass = Array.from(document.documentElement.classList).find(c => c.startsWith('afx-effect-'));
+                    if (activeClass) {
+                        this.currentEffectId = activeClass.replace('afx-effect-', '');
+                    }
+                }
+
                 // IMPORTANT: Refresh configurations even if we skip full init
                 this.defaultMarqueeText = config.marquee;
                 if (this.marquee) {
