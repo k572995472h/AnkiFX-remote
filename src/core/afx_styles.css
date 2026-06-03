@@ -2,7 +2,7 @@
     --afx-bg-color: rgba(10, 10, 15, 0.25);
     --afx-text-color: #f0f0f0;
     --afx-accent: #ff00ff;
-    --tuner-height: 100dvh;
+    --afx-viewport-height: 100dvh;
     --afx-terms-font-size: 1rem;
     --afx-dialog-h3-size: 1.4rem;
     --afx-picker-font-size: 13px;
@@ -56,8 +56,8 @@ body {
     margin: 0 !important;
     padding: 0;
     width: 100% !important;
-    height: var(--tuner-height) !important;
-    min-height: var(--tuner-height) !important;
+    height: var(--afx-viewport-height) !important;
+    min-height: var(--afx-viewport-height) !important;
     overflow: hidden !important;
     background-color: var(--afx-body-bg, #000) !important;
     color: var(--afx-body-color, #fff) !important;
@@ -68,7 +68,7 @@ body {
     margin: 0 !important;
     padding: 0;
     width: 100% !important;
-    height: var(--tuner-height) !important;
+    height: var(--afx-viewport-height) !important;
     overflow: hidden !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -88,6 +88,12 @@ body {
     -webkit-overflow-scrolling: touch !important;
 }
 
+/* After agreement, elevate #qa above canvases */
+html.afx-agreed #qa {
+    position: relative !important;
+    z-index: 10 !important;
+}
+
 body>*,
 #content,
 #container,
@@ -103,7 +109,7 @@ body>*,
     top: 0;
     left: 0;
     width: 100%;
-    height: var(--tuner-height);
+    height: var(--afx-viewport-height);
     z-index: 1;
     pointer-events: none;
     background-color: var(--afx-none-bg, var(--afx-bg-color, black));
@@ -115,7 +121,7 @@ body>*,
     top: 0;
     left: 0;
     width: 100%;
-    height: calc(var(--tuner-height) - var(--afx-bottom-offset, 0px));
+    height: calc(var(--afx-viewport-height) - var(--bottom-inset, 0px));
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -346,7 +352,6 @@ body>*,
     pointer-events: auto !important;
 }
 
-
 .afx-terms {
     font-family: 'Courier New', monospace;
     background: rgba(0, 0, 0, 0.4);
@@ -376,10 +381,9 @@ body>*,
     box-sizing: border-box;
 }
 
-
 .afx-btn,
 .afx-playback-btn,
-#afx-effect-selector,
+.afx-select,
 .afx-sub-picker,
 .afx-control-row {
     font-family: 'Courier New', Courier, monospace !important;
@@ -396,7 +400,6 @@ body>*,
     text-transform: uppercase;
     letter-spacing: 1px;
     font-size: var(--afx-btn-font-size) !important;
-    /* Disclaimer button stays slightly bigger */
 }
 
 .afx-btn:disabled {
@@ -425,30 +428,6 @@ body>*,
     align-items: center;
     gap: 10px;
     color: white;
-}
-
-#afx-effect-selector,
-.afx-sub-picker {
-    background: transparent;
-    color: white;
-    border: none;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    cursor: pointer;
-    outline: none;
-    appearance: auto;
-    width: 100%;
-    height: 100%;
-}
-
-#afx-effect-selector option,
-.afx-sub-picker option {
-    background: #1a1a1a !important;
-    color: #ffffff !important;
-    padding: 12px !important;
-    font-family: 'Courier New', monospace !important;
 }
 
 .afx-playback-btn {
@@ -512,48 +491,6 @@ input:checked+.afx-slider:before {
 /* Hide card content container during active DEBUG effect to avoid jumble */
 html.afx-effect-debug #qa {
     display: none !important;
-}
-
-#afx-tuner-ui {
-    position: relative;
-    z-index: 99999;
-    background: rgba(10, 10, 15, 0.95);
-    border: 1px solid var(--afx-accent);
-    padding: 15px;
-    border-radius: 15px;
-    font-family: 'Courier New', monospace;
-    color: white;
-    display: none !important;
-    width: 240px;
-    box-shadow: 0 0 30px rgba(255, 0, 255, 0.2);
-    pointer-events: auto !important;
-    box-sizing: border-box;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-/* Only show tuner when BOTH active (debug effect selected) AND agreed (disclaimer accepted) */
-html.afx-agreed #afx-tuner-ui.active {
-    display: flex !important;
-}
-
-#afx-tuner-ui input {
-    width: 100%;
-    margin: 12px 0;
-    accent-color: var(--afx-accent);
-}
-
-#afx-tuner-ui .val {
-    font-weight: bold;
-    color: var(--afx-accent);
-}
-
-#afx-tuner-ui .stat {
-    font-size: 10px;
-    opacity: 0.7;
-    margin-top: 4px;
-    display: block;
 }
 
 /* --- Native Anki Card Elements (Flag & Mark) --- */
@@ -645,5 +582,199 @@ html.afx-agreed #afx-tuner-ui.active {
     }
     #afx-ecg-panel .afx-ecg-rhythm {
         font-size: 0.8rem;
+    }
+}
+
+/* Shared engine canvases (no inline layout CSS in engine.js) */
+.afx-shared-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.afx-shared-marquee-canvas {
+    z-index: 5;
+}
+
+#afx-global-fps.afx-global-fps {
+    color: #0f0;
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px #000;
+    pointer-events: none;
+}
+
+.afx-deck-author {
+    margin: -10px 0 15px 0;
+    opacity: 0.7;
+    font-size: 0.9rem;
+}
+
+.afx-effect-selector-container.afx-control-row {
+    padding: 0;
+}
+
+/* --- BGM status color reactivity (no inline styles) --- */
+#afx-bgm-status {
+    color: #fff;
+    transition: color 0.2s ease;
+}
+
+.afx-bgm-active #afx-bgm-status {
+    color: #ff6b6b;
+}
+
+/* --- DEBUG EFFECT DOM PANEL AND METRICS --- */
+html.afx-effect-debug #ankifx-background {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+}
+
+.afx-debug-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--afx-viewport-height) !important;
+    max-height: var(--afx-viewport-height) !important;
+    z-index: 10;
+    box-sizing: border-box;
+    overflow-y: auto !important;
+    padding: 70px 20px calc(var(--bottom-inset, 0px) + var(--afx-dock-height, 0px) + 20px) 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+html.afx-effect-debug .afx-debug-container {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+.afx-debug-container,
+.afx-debug-container * {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
+
+.afx-debug-columns {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+}
+
+.afx-debug-left-col,
+.afx-debug-right-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.afx-debug-panel {
+    background: rgba(10, 10, 15, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    pointer-events: auto;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.afx-debug-panel h3 {
+    font-size: 13px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 4px;
+}
+
+.afx-debug-panel.viewport-info h3,
+.afx-debug-panel.layout-metrics h3 {
+    color: #ff55ff;
+}
+
+.afx-debug-panel.diagnostics h3 {
+    color: #00ff00;
+}
+
+.afx-debug-panel.history h3,
+.afx-debug-panel.logs h3 {
+    color: #00ffff;
+}
+
+.afx-debug-content {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #ffffff;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.afx-debug-panel ::selection {
+    background: rgba(0, 255, 255, 0.3);
+    color: #ffffff;
+}
+
+/* Corner markers */
+.afx-debug-corner {
+    position: absolute;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    font-weight: bold;
+    color: #ff00ff;
+    text-shadow: 1px 1px 2px #000;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.afx-debug-corner.top-left { top: 5px; left: 5px; }
+.afx-debug-corner.top-right { top: 5px; right: 5px; }
+.afx-debug-corner.bottom-left { bottom: 5px; left: 5px; }
+.afx-debug-corner.bottom-right { bottom: 5px; right: 5px; }
+
+/* Visual Layout Boundary Lines */
+.afx-debug-line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 0;
+    z-index: 5;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.afx-debug-line.visible-bottom {
+    border-top: 3px dashed #00ffff;
+}
+
+.afx-debug-line-label {
+    position: absolute;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    font-weight: bold;
+    transform: translateX(-50%);
+    left: 50%;
+    white-space: nowrap;
+    text-shadow: 1px 1px 2px #000;
+}
+
+.afx-debug-line.visible-bottom .afx-debug-line-label {
+    color: #00ffff;
+    bottom: 8px;
+}
+
+@media (max-width: 768px), (orientation: portrait) {
+    .afx-debug-columns {
+        flex-direction: column;
+        gap: 16px;
     }
 }

@@ -14,7 +14,7 @@ Now, the project is open to the public so anyone can inject stunning, high-perfo
 ### Core Features
 *   **Unified Canvas Architecture**: Uses a persistent, HDPi-compliant `WebGL` and `Canvas2D` context system. Background effects switch instantly without recreating the canvas or losing study focus.
 *   **Dynamic Effect Registry**: Effects are auto-discovered during the build process and registered via an auto-generated `registry.js`. Adding a new effect is as simple as dropping a `.js` file into `src/effects/`.
-*   **Auto-Maximizing Viewport Sizing**: An engine-level auto-calibration system designed to solve complex iOS/AnkiMobile viewport height and offset issues. It dynamically adjusts the `--tuner-height` CSS variable based on the native `--io-header` to guarantee perfect edge-to-edge rendering behind Anki's native UI bars.
+*   **Auto-Maximizing Viewport Sizing**: An engine-level auto-calibration system designed to solve complex iOS/AnkiMobile viewport height and offset issues. It dynamically adjusts the `--afx-viewport-height` CSS variable based on the native `--io-header` to guarantee perfect edge-to-edge rendering behind Anki's native UI bars.
     *   **Debug Mode**: Setting `debug: true` in your deck configuration payload displays a styled **Clear Storage** button directly inside the control deck (above the effect picker, visible only when the 'Debug' effect is active) to clear your local storage preferences in one tap.
 *   **Canvas Visualizers**: Thirteen high-performance background effects:
     *   *Aurora*: Organic, noise-based northern lights simulation (optimized for mobile).
@@ -50,7 +50,11 @@ The project is structured to separate core engine logic from visual effects and 
 ankifx/
  ├─ src/
  │   ├─ core/
- │   │   ├─ engine.js             # Core AnkiFX class, DOM/Canvas management, Mobile logic
+ │   │   ├─ engine.js             # AnkiFX orchestration (init, destroy, agree)
+ │   │   ├─ config-merge.js       # Config merge + active effect resolution
+ │   │   ├─ viewport.js            # Viewport resize + DPR
+ │   │   ├─ effect-lifecycle.js   # startEffect + shared contexts
+ │   │   ├─ ui/overlay.js         # Terms dialog, dock, canvases
  │   │   ├─ jukebox.js            # Keygen Jukebox: fetch, decode, history traversal
  │   │   └─ afx_styles.css        # Centralized styling (bundled via esbuild)
  │   ├─ effects/
@@ -145,7 +149,7 @@ To customize AnkiFX for a specific deck:
 ---
 
 ### 4. Tips for Formatting Your Terms
-Since `termsText` is a template literal, you can embed standard HTML tags:
+Since `termsText` is authored as HTML strings (or a JSON array of strings merged at build time), you can embed standard HTML tags:
 *   **Styled alerts**: Use `<em style="color: #ff9999;">` to draw attention to disclaimers.
 *   **Lists & Structuring**: Use standard `<ul>` and `<li>` to present guidelines.
 *   **Logos**: Embed web links (`<img src="...">`) to brand your deck visually.
@@ -498,6 +502,6 @@ This repository is built for seamless AI-assisted development ("vibe coding"). I
 *   **Zero Inline CSS**: All styling must live in `src/core/afx_styles.css`.
 *   **Auto-Registry**: Do not edit `registry.js` manually; it is compiled via `build.js`.
 *   **Git Lifecycle**: Git branches are strictly isolated. All task branches must stem from `main` and use Conventional Commits.
-*   **Mobile Event Blocker**: Interactive controls must call `e.stopPropagation()` on both `click` and touch events to block premature card flips.
+*   **Mobile Event Blocker**: Overlay controls use delegated tap blocking; effect code must not capture card flips after terms are accepted (see `docs/effect-api.md`).
 
-Refer to [`.cursorrules`](.cursorrules) for full architectural interfaces and styling tokens.
+Refer to [`.cursorrules`](.cursorrules), [`docs/effect-api.md`](docs/effect-api.md), and [`.agents/workflows/effect-authoring.md`](.agents/workflows/effect-authoring.md) for interfaces and authoring checklists.

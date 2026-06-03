@@ -1,7 +1,6 @@
-
 let animationId = null;
 let currentW, currentH;
-
+let debugContainer = null;
 
 export const effect = {
     id: 'debug',
@@ -16,18 +15,124 @@ export const effect = {
         color: '#00ff00',
         shadowColor: 'rgba(0,0,0,0.8)',
         shadowBlur: 5
-    }
+    },
+    controls: [
+        {
+            type: 'button',
+            id: 'copy-logs-btn',
+            label: '📋 COPY LOGS',
+            onClick: () => {
+                copyLogsToClipboard();
+            }
+        }
+    ]
 };
 
 export function runDebug(contexts, config) {
-    const ctx = contexts.ctx2d;
+    // Prevent duplicate containers (failsafe)
+    if (debugContainer) {
+        debugContainer.remove();
+        debugContainer = null;
+    }
+
+    const actualDpr = contexts.dpr || 1;
     currentW = contexts.width;
     currentH = contexts.height;
-    const actualDpr = contexts.dpr || 1;
+
+    // Create main container
+    debugContainer = document.createElement('div');
+    debugContainer.className = 'afx-debug-container';
+
+    // Columns structure
+    const cols = document.createElement('div');
+    cols.className = 'afx-debug-columns';
+    debugContainer.appendChild(cols);
+
+    const leftCol = document.createElement('div');
+    leftCol.className = 'afx-debug-left-col';
+    cols.appendChild(leftCol);
+
+    const rightCol = document.createElement('div');
+    rightCol.className = 'afx-debug-right-col';
+    cols.appendChild(rightCol);
+
+    // Left Column Panels
+    // 1. Viewport & Layout Info
+    const viewportPanel = document.createElement('div');
+    viewportPanel.className = 'afx-debug-panel viewport-info';
+    viewportPanel.innerHTML = '<h3>Viewport & Layout</h3>';
+    const viewportContent = document.createElement('pre');
+    viewportContent.className = 'afx-debug-content';
+    viewportPanel.appendChild(viewportContent);
+    leftCol.appendChild(viewportPanel);
+
+    // 2. Engine Diagnostics
+    const diagnosticsPanel = document.createElement('div');
+    diagnosticsPanel.className = 'afx-debug-panel diagnostics';
+    diagnosticsPanel.innerHTML = '<h3>AnkiFX Diagnostics</h3>';
+    const diagnosticsContent = document.createElement('pre');
+    diagnosticsContent.className = 'afx-debug-content';
+    diagnosticsPanel.appendChild(diagnosticsContent);
+    leftCol.appendChild(diagnosticsPanel);
+
+    // Right Column Panels
+    // 3. Engine Evaluation History
+    const historyPanel = document.createElement('div');
+    historyPanel.className = 'afx-debug-panel history';
+    historyPanel.innerHTML = '<h3>Evaluation History</h3>';
+    const historyContent = document.createElement('div');
+    historyContent.className = 'afx-debug-content';
+    historyPanel.appendChild(historyContent);
+    rightCol.appendChild(historyPanel);
+
+    // 4. Chronological Loader Logs
+    const logsPanel = document.createElement('div');
+    logsPanel.className = 'afx-debug-panel logs';
+    logsPanel.innerHTML = '<h3>Chronological Loader Logs</h3>';
+    const logsContent = document.createElement('div');
+    logsContent.className = 'afx-debug-content';
+    logsPanel.appendChild(logsContent);
+    rightCol.appendChild(logsPanel);
+
+    // Corner Markers
+    const corners = {
+        topLeft: document.createElement('div'),
+        topRight: document.createElement('div'),
+        bottomLeft: document.createElement('div'),
+        bottomRight: document.createElement('div')
+    };
+    corners.topLeft.className = 'afx-debug-corner top-left';
+    corners.topRight.className = 'afx-debug-corner top-right';
+    corners.bottomLeft.className = 'afx-debug-corner bottom-left';
+    corners.bottomRight.className = 'afx-debug-corner bottom-right';
+    corners.bottomLeft.style.bottom = 'auto';
+    corners.bottomRight.style.bottom = 'auto';
+
+    Object.values(corners).forEach(el => debugContainer.appendChild(el));
+
+    // Lines & Labels
+    const visibleLine = document.createElement('div');
+    visibleLine.className = 'afx-debug-line visible-bottom';
+    const visibleLabel = document.createElement('span');
+    visibleLabel.className = 'afx-debug-line-label';
+    visibleLabel.textContent = '--- VISIBLE DOCUMENT BOTTOM ---';
+    visibleLine.appendChild(visibleLabel);
+    debugContainer.appendChild(visibleLine);
+
+    // Append main container to contexts.canvas2D.parentElement (ankifx-background)
+    const parentEl = contexts.canvas2D.parentElement || document.body;
+    parentEl.appendChild(debugContainer);
 
     let lastTime = 0;
     let frameCount = 0;
     let fps = 0;
+
+    // Reconciliation cache keys to prevent unneeded textContent/innerHTML writes
+    let lastViewportText = '';
+    let lastDiagnosticsText = '';
+    let lastHistoryKey = '';
+    let lastLogsKey = '';
+    let lastCornersText = '';
 
     function render(timestamp) {
         if (timestamp === undefined) timestamp = performance.now();
@@ -39,167 +144,112 @@ export function runDebug(contexts, config) {
             lastTime = timestamp;
         }
 
-        ctx.fillStyle = '#000';
+        // Draw dark background on 2D canvas
+        const ctx = contexts.ctx2d;
+        ctx.clearRect(0, 0, currentW, currentH);
+        ctx.fillStyle = '#050508';
         ctx.fillRect(0, 0, currentW, currentH);
 
-        // Draw Viewport Info
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 13px monospace';
-        const info = [
-            `FPS: ${fps}`,
-            `window: ${window.innerWidth}x${window.innerHeight}`,
-            `screen: ${screen.width}x${screen.height}`,
-            `dpr (native): ${window.devicePixelRatio}`,
-            `dpr (engine): ${actualDpr}`,
-            `doc: ${document.documentElement.clientWidth}x${document.documentElement.clientHeight}`,
-            `orient: ${window.orientation || 'N/A'}`
-        ];
-        info.forEach((text, i) => {
-            ctx.fillText(text, 20, 60 + i * 18);
-        });
-
-        // Draw Tuner/Layout Info (Right Column)
-        ctx.fillStyle = '#ff55ff';
-        ctx.font = 'bold 13px monospace';
-        ctx.fillText('--- TUNER & LAYOUT METRICS ---', 360, 60);
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px monospace';
-        
+        // Update Viewport & Layout Metrics
         const style = getComputedStyle(document.documentElement);
         const ioHeader = style.getPropertyValue('--io-header') || 'N/A';
-        const tunerHeight = style.getPropertyValue('--tuner-height') || 'N/A';
-        const inlineTunerHeight = document.documentElement.style.getPropertyValue('--tuner-height') || 'N/A';
-        const tunerOffset = window.AnkiFX ? window.AnkiFX.tunerOffset : 'N/A';
-        const tunerAutoUpdate = window.AnkiFX ? window.AnkiFX.tunerAutoUpdate : 'N/A';
-        const bgEl = document.getElementById('ankifx-background');
-        const bgHeight = bgEl ? bgEl.getBoundingClientRect().height : 'N/A';
-        const bgWidth = bgEl ? bgEl.getBoundingClientRect().width : 'N/A';
-        const overlayEl = document.getElementById('ankifx-overlay');
-        const overlayHeight = overlayEl ? overlayEl.getBoundingClientRect().height : 'N/A';
-        const qaEl = document.getElementById('qa');
-        const qaHeight = qaEl ? qaEl.getBoundingClientRect().height : 'N/A';
-        const cardEl = document.querySelector('.card');
-        const cardHeight = cardEl ? cardEl.getBoundingClientRect().height : 'N/A';
-        const isLandscape = window.innerWidth > window.innerHeight;
-
+        const ioHeaderVal = parseInt(style.getPropertyValue('--io-header')) || 0;
         const topInset = style.getPropertyValue('--top-inset') || 'N/A';
         const bottomInset = style.getPropertyValue('--bottom-inset') || 'N/A';
-        const styleBottomOffset = style.getPropertyValue('--afx-bottom-offset') || 'N/A';
-        const ioHeaderVal = parseInt(style.getPropertyValue('--io-header')) || 0;
+        const bgEl = document.getElementById('ankifx-background');
+        const resolvedViewportHeight = bgEl ? bgEl.getBoundingClientRect().height : 'N/A';
+        const isLandscape = window.innerWidth > window.innerHeight;
         const visibleH = document.documentElement.clientHeight + ioHeaderVal;
 
-        const tunerInfo = [
-            `--io-header:           ${ioHeader}`,
-            `--top-inset:           ${topInset}`,
-            `--bottom-inset:        ${bottomInset}`,
-            `--tuner-height (comp): ${tunerHeight}`,
-            `--tuner-height (in):   ${inlineTunerHeight}`,
-            `tunerOffset:           ${tunerOffset}`,
-            `tunerAutoUpdate:       ${tunerAutoUpdate}`,
-            `isLandscape:           ${isLandscape}`,
-            `--afx-bottom-offset:   ${styleBottomOffset}`,
-            `bg-size:               ${bgWidth}x${bgHeight}`,
-            `overlay-h:             ${overlayHeight}`,
-            `qa-h:                  ${qaHeight}`,
-            `card-h:                ${cardHeight}`,
-            `visibleBounds:         0 to ${visibleH}px`
-        ];
+        const viewportText = [
+            `window:               ${window.innerWidth}x${window.innerHeight}`,
+            `screen:               ${screen.width}x${screen.height}`,
+            `doc:                  ${document.documentElement.clientWidth}x${document.documentElement.clientHeight}`,
+            `orient:               ${window.orientation || 'N/A'}`,
+            `dpr (native|engine):  (${window.devicePixelRatio}|${actualDpr})`,
+            `--io-header:          ${ioHeader}`,
+            `--top-inset:          ${topInset}`,
+            `--bottom-inset:       ${bottomInset}`,
+            `--afx-viewport-height: calc(100dvh + ${ioHeaderVal}px) = ${resolvedViewportHeight}px`,
+            `isLandscape:          ${isLandscape}`
+        ].join('\n');
 
-        tunerInfo.forEach((text, i) => {
-            ctx.fillText(text, 360, 80 + i * 16);
-        });
+        if (viewportText !== lastViewportText) {
+            viewportContent.textContent = viewportText;
+            lastViewportText = viewportText;
+        }
 
-        // Draw AnkiFX Engine Diagnostics
-        ctx.fillStyle = '#0f0';
-        ctx.font = 'bold 13px monospace';
-        ctx.fillText('--- AnkiFX DIAGNOSTICS ---', 20, 195);
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px monospace';
-        ctx.fillText(`Version:  ${window.AnkiFX?.version || '1.0.0-dev'}`, 20, 215);
-        ctx.fillText(`Source:   ${window.AnkiFX?.source || 'unknown'}`, 20, 230);
-        ctx.fillText(`Built:    ${window.AnkiFX?.buildDate || 'development'}`, 20, 245);
+        // Update Diagnostics
+        const diagnosticsText = [
+            `Version:  ${window.AnkiFX?.version || '1.0.0-dev'}`,
+            `Source:   ${window.AnkiFX?.source || 'unknown'}`,
+            `Built:    ${window.AnkiFX?.buildDate || 'development'}`
+        ].join('\n');
 
-        // Draw Engine Evaluation History
-        ctx.fillStyle = '#0ff';
-        ctx.font = 'bold 13px monospace';
-        ctx.fillText('--- ENGINE EVALUATION HISTORY ---', 20, 265);
+        if (diagnosticsText !== lastDiagnosticsText) {
+            diagnosticsContent.textContent = diagnosticsText;
+            lastDiagnosticsText = diagnosticsText;
+        }
 
+        // Update Evaluation History
         const history = window.AnkiFX_Eval_History || [];
-        if (history.length === 0) {
-            ctx.fillStyle = '#888';
-            ctx.font = 'italic 12px monospace';
-            ctx.fillText('(No evaluation history captured)', 20, 282);
-        } else {
-            ctx.font = '11px monospace';
-            history.slice(-3).forEach((h, idx) => {
-                ctx.fillStyle = h.status === 'active' ? '#55ff55' : '#ffaa55';
-                ctx.fillText(`[${idx + 1}] ${h.source} (${h.version}) @ ${h.time} - ${h.status}`, 20, 282 + idx * 15);
-            });
+        const historyKey = JSON.stringify(history);
+        if (historyKey !== lastHistoryKey) {
+            historyContent.innerHTML = '';
+            if (history.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.textContent = '(No evaluation history captured)';
+                emptyMsg.style.color = '#888';
+                emptyMsg.style.fontStyle = 'italic';
+                historyContent.appendChild(emptyMsg);
+            } else {
+                history.slice(-3).forEach((h, idx) => {
+                    const line = document.createElement('div');
+                    line.textContent = `[${idx + 1}] ${h.source} (${h.version}) @ ${h.time} - ${h.status}`;
+                    line.style.color = h.status === 'active' ? '#55ff55' : '#ffaa55';
+                    historyContent.appendChild(line);
+                });
+            }
+            lastHistoryKey = historyKey;
         }
 
-        // Draw Chronological Loader Logs
-        ctx.fillStyle = '#0ff';
-        ctx.font = 'bold 13px monospace';
-        ctx.fillText('--- CHRONOLOGICAL LOADER LOGS ---', 20, 335);
-
+        // Update Loader Logs
         const logs = window.AnkiFX_Loader_Logs || [];
-        if (logs.length === 0) {
-            ctx.fillStyle = '#888';
-            ctx.font = 'italic 12px monospace';
-            ctx.fillText('(No logs captured by template loader)', 20, 355);
-        } else {
-            ctx.font = '11px monospace';
-            logs.slice(-12).forEach((log, idx) => {
-                const isError = log.includes('fail') || log.includes('Error') || log.includes('offline') || log.includes('warn');
-                ctx.fillStyle = isError ? '#ff5555' : '#55ff55';
-                ctx.fillText(`[${idx + 1}] ${log}`, 20, 355 + idx * 16);
-            });
+        const logsKey = JSON.stringify(logs);
+        if (logsKey !== lastLogsKey) {
+            logsContent.innerHTML = '';
+            if (logs.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.textContent = '(No logs captured by template loader)';
+                emptyMsg.style.color = '#888';
+                emptyMsg.style.fontStyle = 'italic';
+                logsContent.appendChild(emptyMsg);
+            } else {
+                logs.slice(-12).forEach((log, idx) => {
+                    const line = document.createElement('div');
+                    line.textContent = `[${idx + 1}] ${log}`;
+                    const isError = log.includes('fail') || log.includes('Error') || log.includes('offline') || log.includes('warn');
+                    line.style.color = isError ? '#ff5555' : '#55ff55';
+                    logsContent.appendChild(line);
+                });
+            }
+            lastLogsKey = logsKey;
         }
 
-        // Corner Markers
-        ctx.fillStyle = '#f0f';
-        ctx.font = 'bold 12px monospace';
-        ctx.fillText(`(0,0)`, 5, 15);
-        ctx.fillText(`(${currentW},0)`, currentW - 65, 15);
-        ctx.fillText(`(0,${currentH})`, 5, currentH - 5);
-        ctx.fillText(`(${currentW},${currentH})`, currentW - 65, currentH - 5);
+        // Update Corner Markers text
+        const cornersText = `${currentW}x${visibleH}`;
+        if (cornersText !== lastCornersText) {
+            corners.topLeft.textContent = `(0,0)`;
+            corners.topRight.textContent = `(${currentW},0)`;
+            corners.bottomLeft.textContent = `(0,${visibleH})`;
+            corners.bottomRight.textContent = `(${currentW},${visibleH})`;
+            corners.bottomLeft.style.top = `${visibleH - 18}px`;
+            corners.bottomRight.style.top = `${visibleH - 18}px`;
+            lastCornersText = cornersText;
+        }
 
-        // Draw Visible Layout Boundary
-
-        ctx.strokeStyle = '#0ff';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(0, visibleH - 2);
-        ctx.lineTo(currentW, visibleH - 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = '#0ff';
-        ctx.font = 'bold 14px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('--- VISIBLE DOCUMENT BOTTOM ---', currentW / 2, visibleH - 8);
-        ctx.textAlign = 'left';
-
-        // Bottom Edge Warning
-        ctx.strokeStyle = '#f00';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(0, currentH - 2);
-        ctx.lineTo(currentW, currentH - 2);
-        ctx.stroke();
-        
-        ctx.fillStyle = '#f00';
-        ctx.font = 'bold 18px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('--- CANVAS BOTTOM ---', currentW / 2, currentH - 10);
-        ctx.textAlign = 'left';
-
-        // Right Edge Warning
-        ctx.beginPath();
-        ctx.moveTo(currentW - 2, 0);
-        ctx.lineTo(currentW - 2, currentH);
-        ctx.stroke();
+        // Update Line Positions
+        visibleLine.style.top = `${visibleH}px`;
 
         animationId = requestAnimationFrame(render);
     }
@@ -212,4 +262,77 @@ export function stopDebug() {
         cancelAnimationFrame(animationId);
         animationId = null;
     }
+    if (debugContainer) {
+        debugContainer.remove();
+        debugContainer = null;
+    }
+}
+
+function copyLogsToClipboard() {
+    const container = document.querySelector('.afx-debug-container');
+    if (!container) return;
+
+    let text = '=== ANKIFX DEBUG LOGS ===\n\n';
+
+    const panels = container.querySelectorAll('.afx-debug-panel');
+    panels.forEach(panel => {
+        const title = panel.querySelector('h3')?.textContent || '';
+        const contentEl = panel.querySelector('.afx-debug-content');
+        if (contentEl) {
+            text += `--- ${title.toUpperCase()} ---\n`;
+            text += contentEl.innerText || contentEl.textContent || '';
+            text += '\n\n';
+        }
+    });
+
+    const writeToClipboard = () => {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text.trim();
+            textArea.style.position = 'fixed';
+            textArea.style.top = '0';
+            textArea.style.left = '0';
+            textArea.style.opacity = '0';
+            textArea.style.pointerEvents = 'none';
+            document.body.appendChild(textArea);
+            
+            textArea.focus();
+            textArea.select();
+            
+            const success = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (success) {
+                return Promise.resolve();
+            }
+        } catch (e) {
+            // silent fallback
+        }
+
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            return navigator.clipboard.writeText(text.trim());
+        } else {
+            return Promise.reject(new Error('No copy method succeeded or is available'));
+        }
+    };
+
+    writeToClipboard().then(() => {
+        const btn = document.getElementById('afx-control-copy-logs-btn');
+        if (btn) {
+            const oldLabel = btn.textContent;
+            btn.textContent = '✅ COPIED!';
+            setTimeout(() => {
+                btn.textContent = oldLabel;
+            }, 1500);
+        }
+    }).catch(err => {
+        const btn = document.getElementById('afx-control-copy-logs-btn');
+        if (btn) {
+            const oldLabel = btn.textContent;
+            btn.textContent = '❌ ERROR';
+            setTimeout(() => {
+                btn.textContent = oldLabel;
+            }, 1500);
+        }
+    });
 }

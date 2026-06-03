@@ -1,3 +1,4 @@
+import { createFullscreenProgram } from '../core/webgl-utils.js';
 
 let animationId = null;
 let currentW, currentH;
@@ -103,24 +104,7 @@ export function runMandelbrot(contexts, config = {}) {
         }
     `;
 
-    function compileShader(type, source) {
-        const s = gl.createShader(type);
-        gl.shaderSource(s, source);
-        gl.compileShader(s);
-        return s;
-    }
-
-    const program = gl.createProgram();
-    gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vsSource));
-    gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fsSource));
-    gl.linkProgram(program);
-    gl.useProgram(program);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const posLoc = gl.getAttribLocation(program, "position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+    const program = createFullscreenProgram(gl, vsSource, fsSource);
 
     const timeLoc = gl.getUniformLocation(program, "u_time");
     const speedLoc = gl.getUniformLocation(program, "u_speed");

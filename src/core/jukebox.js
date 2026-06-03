@@ -172,7 +172,6 @@ export class Jukebox {
 
     setupCompletionPolling() {
         if (this.pollInterval) clearInterval(this.pollInterval);
-        let playingSince = Date.now();
 
         this.pollInterval = setInterval(() => {
             if (!this.currentPlayer) return this.stopPolling();

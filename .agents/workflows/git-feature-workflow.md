@@ -61,7 +61,7 @@ git checkout -b feat/my-new-feature
 ```
 
 ### 4. Incremental Commits
-Commit your source changes frequently using standard Conventional Commits prefix tags:
+Commit source changes in logical units using standard Conventional Commits prefix tags (when the user requests commits or approves autonomous commits on the feature branch):
 ```bash
 git add src/core/engine.js
 git commit -m "feat: added new visual effect loader"

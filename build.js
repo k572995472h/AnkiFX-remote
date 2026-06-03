@@ -3,6 +3,7 @@ const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 const pkg = require('./package.json');
+const { validateConfig, compileConfig } = require('./scripts/validate-config.js');
 
 const isWatch = process.argv.includes('--watch');
 const isLocal = process.argv.includes('--local');
@@ -25,6 +26,21 @@ const effectsRegistryPlugin = {
                 
                 files.forEach((file, idx) => {
                     const id = file.replace('.js', '');
+                    const filePath = path.join(effectsDir, file);
+                    const source = fs.readFileSync(filePath, 'utf8');
+                    if (!/export const effect\s*=/.test(source)) {
+                        throw new Error(`Effect file ${file} must export "export const effect = { ... }"`);
+                    }
+                    const idMatch = source.match(/^\s*id:\s*['"]([^'"]+)['"]/m);
+                    if (!idMatch) {
+                        throw new Error(`Effect file ${file} is missing effect.id`);
+                    }
+                    if (idMatch[1] !== id) {
+                        throw new Error(`Effect file ${file}: effect.id "${idMatch[1]}" must match filename "${id}"`);
+                    }
+                    if (!/run\s*:/.test(source) || !/stop\s*:/.test(source)) {
+                        throw new Error(`Effect file ${file} must define run and stop`);
+                    }
                     const varName = `eff${idx}`;
                     imports += `import { effect as ${varName} } from './${file}';\n`;
                     entries += `    '${id}': ${varName},\n`;
@@ -35,60 +51,13 @@ const effectsRegistryPlugin = {
                 console.log(`✨ Generated effects registry with ${files.length} effects.`);
             } catch (err) {
                 console.error('⚠️ Error generating effects registry:', err.message);
+                process.exit(1);
             }
         });
     },
 };
 
 // 2. Plugin to copy only the static assets
-// Simple and robust JSON schema validation helper
-function validateConfig(config, filename) {
-    const required = ['deckTitle', 'termsText', 'marquee', 'defaultEffect'];
-    for (const field of required) {
-        if (config[field] === undefined) {
-            throw new Error(`Config validation error in ${filename}: Missing required field "${field}"`);
-        }
-    }
-    if (typeof config.deckTitle !== 'string') throw new Error(`Config validation error in ${filename}: "deckTitle" must be a string`);
-    if (typeof config.marquee !== 'string') throw new Error(`Config validation error in ${filename}: "marquee" must be a string`);
-    if (typeof config.defaultEffect !== 'string') throw new Error(`Config validation error in ${filename}: "defaultEffect" must be a string`);
-    
-    if (config.termsText !== undefined) {
-        if (!Array.isArray(config.termsText) && typeof config.termsText !== 'string') {
-            throw new Error(`Config validation error in ${filename}: "termsText" must be a string or an array of strings`);
-        }
-        if (Array.isArray(config.termsText)) {
-            for (let i = 0; i < config.termsText.length; i++) {
-                if (typeof config.termsText[i] !== 'string') {
-                    throw new Error(`Config validation error in ${filename}: "termsText[${i}]" must be a string`);
-                }
-            }
-        }
-    }
-
-
-
-    if (config.debug !== undefined && typeof config.debug !== 'boolean') throw new Error(`Config validation error in ${filename}: "debug" must be a boolean`);
-    if (config.countdown !== undefined && typeof config.countdown !== 'number') throw new Error(`Config validation error in ${filename}: "countdown" must be a number`);
-    if (config.marqueePosition !== undefined && config.marqueePosition !== 'top' && config.marqueePosition !== 'bottom') {
-        throw new Error(`Config validation error in ${filename}: "marqueePosition" must be "top" or "bottom"`);
-    }
-}
-
-// Safe UTF-8 to Base64 compiler helper
-function compileConfig(config) {
-    const compiled = { ...config };
-    let termsStr = '';
-    if (Array.isArray(compiled.termsText)) {
-        termsStr = compiled.termsText.join('\n');
-    } else {
-        termsStr = compiled.termsText || '';
-    }
-    // Encode standard UTF-8 string to base64 safely in Node.js
-    compiled.termsText = Buffer.from(termsStr, 'utf8').toString('base64');
-    return compiled;
-}
-
 // 2. Plugin to build and compile the JSON configs
 const copyStaticFilesPlugin = {
     name: 'copy-static-files',
@@ -235,7 +204,7 @@ async function runBuild() {
         },
         define: {
             'process.env.ANKIFX_VERSION': JSON.stringify(versionString),
-            'process.env.BUILD_DATE': JSON.stringify(new Date().toLocaleString())
+            'process.env.BUILD_DATE': JSON.stringify(new Date().toISOString())
         },
         plugins: [effectsRegistryPlugin, copyStaticFilesPlugin]
     });
