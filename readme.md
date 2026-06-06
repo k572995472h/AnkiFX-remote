@@ -98,7 +98,7 @@ To edit visual effects, customize layouts, or compile the codebase locally:
     npm run watch
     ```
 3.  **Live Preview**:
-    Open `build/card_front_example.html` or `build/card_back_example.html` in your browser (e.g., using VS Code's Live Server, or `npx serve build`) to preview changes in real-time.
+    Open `build/card templates/front_basic.html` or `build/card templates/back_basic.html` in your browser (e.g., using VS Code's Live Server, or `npx serve build`) to preview changes in real-time.
 4.  **Local Anki Auto-Copy (Optional)**:
     To automatically copy compiled build files directly to your Anki `collection.media` folder on every build or save:
     * Create a private, git-ignored `ankifx.local.json` in the root:
