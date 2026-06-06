@@ -4,6 +4,8 @@ let animationId = null;
 let currentW, currentH;
 let resLoc;
 let glCtx;
+let activeProgram = null;
+let activeBuffer = null;
 
 export const effect = {
     id: 'julia',
@@ -124,7 +126,11 @@ export function runJulia(contexts, config = {}) {
         }
     `;
 
-    const program = createFullscreenProgram(gl, vsSource, fsSource);
+    const webglObj = createFullscreenProgram(gl, vsSource, fsSource);
+    if (!webglObj) return;
+    const program = webglObj.program;
+    activeProgram = program;
+    activeBuffer = webglObj.buffer;
 
     const timeLoc = gl.getUniformLocation(program, "u_time");
     const speedLoc = gl.getUniformLocation(program, "u_speed");
@@ -349,6 +355,14 @@ export function stopJulia() {
         currentMouseMoveListener = null;
     }
     document.querySelectorAll('.julia-debug-el').forEach(el => el.remove());
+    
+    if (glCtx) {
+        if (activeProgram) glCtx.deleteProgram(activeProgram);
+        if (activeBuffer) glCtx.deleteBuffer(activeBuffer);
+        activeProgram = null;
+        activeBuffer = null;
+    }
+    
     glCtx = null;
     resLoc = null;
 }

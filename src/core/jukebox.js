@@ -198,6 +198,7 @@ export class Jukebox {
     }
 
     stop() {
+        this._opId++; // Invalidate all pending async track loads
         this.stopPolling();
         this.isPlaying = false;
         

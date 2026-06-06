@@ -38,6 +38,7 @@ const state = {
     _resizeInterval: null,
     observer: null,
     dockObserver: null,
+    initialized: false,
 };
 
 // --- Core lifecycle ---
@@ -49,6 +50,7 @@ function init(templateOptions = {}) {
 
     if (document.getElementById('ankifx-overlay')) {
         if (tryRestoreAgreedSession(state, config)) {
+            state.initialized = true;
             return;
         }
     }
@@ -92,6 +94,7 @@ function init(templateOptions = {}) {
         state.marquee.enabled = isMarqueeEnabled();
     }
 
+    state.initialized = true;
     attachCardObserver(state);
     reparentNativeElements();
 }
@@ -186,6 +189,7 @@ function destroy() {
     }
 
     state.currentEffectId = null;
+    state.initialized = false;
 
     console.log('[AnkiFX] Destroyed.');
 }
@@ -242,4 +246,5 @@ export const AnkiFX = {
     get currentEffectId() { return state.currentEffectId; },
     get defaultMarqueeText() { return state.defaultMarqueeText; },
     get EFFECT_SONG_MAP() { return state.EFFECT_SONG_MAP; },
+    get initialized() { return !!state.initialized; },
 };

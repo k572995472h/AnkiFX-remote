@@ -75,7 +75,7 @@ export function injectOverlayUI(state, config, activeEffect) {
         hasAgreedSession = localStorage.getItem(`ankifx_agreed_${config.deckTitle}`) === 'true';
     } catch (e) { }
 
-    const hasTerms = config.termsText && config.termsText.trim() !== "" && !hasAgreedSession;
+    const hasTerms = config.termsText && typeof config.termsText === 'string' && config.termsText.trim() !== "" && !hasAgreedSession;
 
     if (hasTerms) {
         overlay.innerHTML = `

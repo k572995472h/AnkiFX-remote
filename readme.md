@@ -98,7 +98,7 @@ To edit visual effects, customize layouts, or compile the codebase locally:
     npm run watch
     ```
 3.  **Live Preview**:
-    Open `build/card_front_example.html` or `build/card_back_example.html` in your browser (e.g., using VS Code's Live Server, or `npx serve build`) to preview changes in real-time.
+    Open `build/card templates/card_front_example.html` or `build/card templates/card_back_example.html` in your browser (e.g., using VS Code's Live Server, or `npx serve build`) to preview changes in real-time.
 4.  **Local Anki Auto-Copy (Optional)**:
     To automatically copy compiled build files directly to your Anki `collection.media` folder on every build or save:
     * Create a private, git-ignored `ankifx.local.json` in the root:
@@ -269,22 +269,25 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 <script>
     (function() {
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+        function afxLog(msg, level) {
+            window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });
+        }
         var remoteScript = document.getElementById('ankifx-engine-script');
         if (remoteScript) {
             if (window.AnkiFX && window.AnkiFX.source === 'remote') {
                 window.AnkiFX_Remote_Status = "loaded";
-                window.AnkiFX_Loader_Logs.push("Remote engine script loaded (sync).");
+                afxLog("Remote engine script loaded (sync).", "success");
             } else {
                 window.AnkiFX_Remote_Status = "pending";
-                window.AnkiFX_Loader_Logs.push("Remote engine script pending...");
+                afxLog("Remote engine script pending...", "pending");
                 remoteScript.addEventListener('load', function() {
                     window.AnkiFX_Remote_Status = "loaded";
-                    window.AnkiFX_Loader_Logs.push("Remote engine script onload fired (async).");
+                    afxLog("Remote engine script onload fired (async).", "success");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
                 remoteScript.addEventListener('error', function() {
                     window.AnkiFX_Remote_Status = "failed";
-                    window.AnkiFX_Loader_Logs.push("Remote engine script onerror fired (async).");
+                    afxLog("Remote engine script onerror fired (async).", "warn");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
             }
@@ -293,6 +296,13 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 </script>
 
 <script>
+    // Initialize global loader logs
+    window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+    function afxLog(msg, level) {
+        window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });
+    }
+    afxLog("Template loaded.", "info");
+
     // Closure-scoped flags to prevent duplicate execution within the same card's lifecycle
     var contentInitialized = false;
     var ankiFXInitialized = false;
@@ -305,7 +315,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
     function triggerAnkiFX(attempts = 0) {
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
         if (attempts === 0) {
-            window.AnkiFX_Loader_Logs.push("triggerAnkiFX called.");
+            afxLog("triggerAnkiFX called.", "info");
         }
 
         const remoteScriptExists = !!document.getElementById('ankifx-engine-script');
@@ -320,7 +330,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
             const isWaitingForRemote = (remoteStatus === "pending") && (attempts < 16);
             if (isWaitingForRemote) {
                 if (attempts % 5 === 0) {
-                    window.AnkiFX_Loader_Logs.push("Waiting for remote script (Attempt " + attempts + ", status=" + remoteStatus + ")...");
+                    afxLog("Waiting for remote script (Attempt " + attempts + ", status=" + remoteStatus + ")...", "pending");
                 }
                 setTimeout(() => triggerAnkiFX(attempts + 1), 50);
                 return;
@@ -329,12 +339,12 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
             // 1. First initialize AnkiFX if it is loaded
             if (!ankiFXInitialized) {
                 try {
-                    window.AnkiFX_Loader_Logs.push("Initializing AnkiFX engine (Source: " + (AnkiFX.source || 'local') + ", Version: " + (AnkiFX.version || '1.0.0') + ")...");
+                    afxLog("Initializing AnkiFX engine (Source: " + (AnkiFX.source || 'local') + ", Version: " + (AnkiFX.version || '1.0.0') + ")...", "info");
                     ankiFXInitialized = true;
                     AnkiFX.init();
-                    window.AnkiFX_Loader_Logs.push("AnkiFX.init() success.");
+                    afxLog("AnkiFX.init() success.", "success");
                 } catch (e) {
-                    window.AnkiFX_Loader_Logs.push("AnkiFX init error: " + e.message);
+                    afxLog("AnkiFX init error: " + e.message, "error");
                     console.error("AnkiFX Start Error:", e);
                 }
             }
@@ -342,23 +352,23 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
             // 2. Then run the card's native content/table generator
             if (!contentInitialized) {
                 try {
-                    window.AnkiFX_Loader_Logs.push("Running card content run()...");
+                    afxLog("Running card content run()...", "info");
                     contentInitialized = true;
                     run();
-                    window.AnkiFX_Loader_Logs.push("Card content run() success.");
+                    afxLog("Card content run() success.", "success");
                 } catch (e) {
-                    window.AnkiFX_Loader_Logs.push("Card content error: " + e.message);
+                    afxLog("Card content error: " + e.message, "error");
                     console.error("Card Content Run Error:", e);
                 }
             }
         } else if (attempts < 60) { // Poll for ~3 seconds
             if (attempts % 10 === 0) {
-                window.AnkiFX_Loader_Logs.push("Polling (Attempt " + attempts + ": AnkiFX=" + hasAnkiFX + ", run=" + hasRun + ", Config=" + hasConfig + ")...");
+                afxLog("Polling (Attempt " + attempts + ": AnkiFX=" + hasAnkiFX + ", run=" + hasRun + ", Config=" + hasConfig + ")...", "pending");
             }
             setTimeout(() => triggerAnkiFX(attempts + 1), 50);
         } else {
             const err = "Loader timed out after 3.0s. AnkiFX: " + (hasAnkiFX ? "Loaded" : "FAILED") + ", run(): " + (hasRun ? "Defined" : "UNDEFINED") + ", Config: " + (hasConfig ? "Loaded" : "FAILED");
-            window.AnkiFX_Loader_Logs.push(err);
+            afxLog(err, "error");
             console.error(err);
         }
     }
