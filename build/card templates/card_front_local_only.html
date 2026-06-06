@@ -12,7 +12,7 @@
         // --- 0. Configurations & Logs ---
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
         function afxLog(msg, level) {
-            window.AnkiFX_Loader_Logs.push({ msg: "[Loader] " + msg, level: level || 'info' });
+            window.AnkiFX_Loader_Logs.push({ msg: "[Card Template] " + msg, level: level || 'info' });
         }
         afxLog("Template loader started.");
 
@@ -103,7 +103,7 @@
             };
             script.onerror = function () {
                 afxLog("Script failed to load: " + src, "warn");
-                console.warn("[Loader] Failed to load script: " + src);
+                console.warn("[Card Template] Failed to load script: " + src);
             };
             document.head.appendChild(script);
         }

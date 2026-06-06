@@ -16,7 +16,7 @@ const isNewer = !currentEngine || isNewerVersion(incomingVersion, activeVersion)
 if (isNewer) {
     if (isAlreadyInitialized) {
         console.info(
-            `[AnkiFX] Newer engine version v${incomingVersion} (${AnkiFX.source}) loaded late. ` +
+            `[Loader] Newer engine version v${incomingVersion} (${AnkiFX.source}) loaded late. ` +
             `Upgrading and replacing active engine v${activeVersion} (${currentEngine.source})...`
         );
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
@@ -31,7 +31,7 @@ if (isNewer) {
                 level: 'success'
             });
         } catch (e) {
-            console.error(`[AnkiFX] Error destroying old engine: ${e.message}`);
+            console.error(`[Loader] Error destroying old engine: ${e.message}`);
             window.AnkiFX_Loader_Logs.push({
                 msg: `[Loader] Error destroying active engine: ${e.message}`,
                 level: 'error'
@@ -45,7 +45,7 @@ if (isNewer) {
                 level: 'success'
             });
         } catch (e) {
-            console.error(`[AnkiFX] Error initializing upgraded engine: ${e.message}`);
+            console.error(`[Loader] Error initializing upgraded engine: ${e.message}`);
             window.AnkiFX_Loader_Logs.push({
                 msg: `[Loader] Upgraded AnkiFX engine initialization failed: ${e.message}`,
                 level: 'error'
@@ -58,7 +58,7 @@ if (isNewer) {
     isIgnored = true;
     ignoreReason = `ignored (older or equal version: active=${activeVersion}, incoming=${incomingVersion})`;
     console.info(
-        `[AnkiFX] Incoming engine v${incomingVersion} is not newer than active engine v${activeVersion}. Ignoring.`
+        `[Loader] Incoming engine v${incomingVersion} is not newer than active engine v${activeVersion}. Ignoring.`
     );
 }
 

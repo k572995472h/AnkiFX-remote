@@ -35,7 +35,7 @@ AnkiFX is a visuals-heavy project. Always prioritize rich aesthetics, smooth ani
 
 ## 6. Logging Conventions
 
-All `console.*` calls **must** include a bracketed subsystem prefix so messages are identifiable in the debug panel console. Use the exact prefixes below — do not invent new ones without updating this list:
+All `console.*` calls and loader logs **must** include a bracketed subsystem prefix so messages are identifiable in the debug panel console and diagnostics panel. Use the exact prefixes below — do not invent new ones without updating this list:
 
 | Subsystem | Prefix |
 |---|---|
@@ -45,21 +45,30 @@ All `console.*` calls **must** include a bracketed subsystem prefix so messages 
 | Lava Lamp effect | `[LavaLamp/WebGL]` |
 | Stripe Gradient / MiniGl | `[Gradient/WebGL]` |
 | New effects | `[EffectName]` or `[EffectName/WebGL]` |
+| HTML Card Templates (loader events) | `[Card Template]` |
+| Version Comparative / Takeover Loader in `src/index.js` | `[Loader]` |
 
 **Rules:**
-1. **Level discipline**: use `console.error` for unrecoverable failures, `console.warn` for degraded-but-continuing states, `console.log` for lifecycle milestones only. Do not `console.log` inside hot render/animation loops.
+1. **Level discipline**: use `console.error` for unrecoverable failures, `console.warn` for degraded-but-continuing states, `console.log` or `console.info` for lifecycle milestones only. Do not log inside hot render/animation loops.
 2. **Error objects**: log `e.message` (not the raw Error object) to keep output readable on mobile/WKWebView.
 3. **Console intercept safety**: `debug.js` installs a console intercept. Never snapshot `console.*` methods at module top-level — WKWebView may not have initialised them yet. Always bind inside an `if (!window.__console_intercepted__)` guard, and include a `|| (() => {})` fallback.
 
-**Loader logs (card templates only):**
-Use the `afxLog(msg, level)` helper — never push raw strings into `window.AnkiFX_Loader_Logs`. Valid levels: `"success"`, `"error"`, `"warn"`, `"pending"`, `"info"`.
+**Loader logs (diagnostics panel):**
+Loader events and takeover history are written to `window.AnkiFX_Loader_Logs`.
+- In HTML card templates, use the `afxLog(msg, level)` helper which prefixes messages with `[Card Template]`.
+- In `src/index.js` (takeover logic), prefix logs pushed to `window.AnkiFX_Loader_Logs` with `[Loader]`.
+- Valid log levels: `"success"`, `"error"`, `"warn"`, `"pending"`, `"info"`.
 
 ```js
-// ✅ correct
-afxLog("AnkiFX.init() success.", "success");
-afxLog("AnkiFX init error: " + e.message, "error");
+// ✅ correct (HTML Card Templates)
+function afxLog(msg, level) {
+    window.AnkiFX_Loader_Logs.push({ msg: "[Card Template] " + msg, level: level || 'info' });
+}
 
-// ❌ wrong — plain string loses level metadata
-window.AnkiFX_Loader_Logs.push("AnkiFX.init() success.");
+// ✅ correct (src/index.js takeover)
+window.AnkiFX_Loader_Logs.push({
+    msg: `[Loader] Active engine v${activeVersion} destroyed successfully.`,
+    level: 'success'
+});
 ```
 

@@ -215,8 +215,13 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 
 <script>
     (function () {
-        // --- 0. Configurations ---
+        // --- 0. Configurations & Logs ---
         var ANKIFX_CDN_URL = "https://cdn.jsdelivr.net/gh/robkipa/ankifx@dev/build/_ankifx.js";
+        window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+        function afxLog(msg, level) {
+            window.AnkiFX_Loader_Logs.push({ msg: "[Card Template] " + msg, level: level || 'info' });
+        }
+        afxLog("Template loader started.");
 
         // --- 1. Dynamic Non-Blocking Config Loading ---
         var fieldContainer = document.getElementById("afx-config-field");
@@ -227,7 +232,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
                 try {
                     config.termsText = decodeURIComponent(escape(atob(config.termsText)));
                 } catch (e) {
-                    console.error("[Loader] Failed to decode termsText: " + e.message);
+                    afxLog("Failed to decode termsText: " + e.message, "error");
                 }
             }
             return config;
@@ -240,13 +245,15 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
                 try {
                     var parsedConfig = decodeConfig(JSON.parse(configText));
                     window.AnkiFX_Config = parsedConfig;
+                    afxLog("Embedded config parsed successfully.", "success");
                     resolve(parsedConfig);
                     return;
                 } catch (e) {
-                    console.error("[Loader] Failed to parse embedded config. Falling back. Error: " + e.message);
+                    afxLog("Failed to parse embedded config. Falling back. Error: " + e.message, "warn");
                 }
             }
 
+            afxLog("Fetching fallback config _afx_defaults.json...", "pending");
             var xhr = new XMLHttpRequest();
             xhr.open("GET", "_afx_defaults.json", true);
             xhr.onreadystatechange = function () {
@@ -255,11 +262,12 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
                     if (xhr.status === 200 || xhr.status === 0) {
                         try {
                             parsed = decodeConfig(JSON.parse(xhr.responseText));
+                            afxLog("Fallback defaults config loaded.", "success");
                         } catch (err) {
-                            console.error("[Loader] Failed to parse _afx_defaults.json: " + err.message);
+                            afxLog("Failed to parse defaults config: " + err.message, "error");
                         }
                     } else {
-                        console.error("[Loader] Failed to load _afx_defaults.json. Status: " + xhr.status);
+                        afxLog("Failed to load defaults config. Status: " + xhr.status, "error");
                     }
                     window.AnkiFX_Config = parsed;
                     resolve(parsed);
@@ -274,14 +282,16 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
         function tryInitEngine() {
             if (engineInitialized) return;
             if (window.AnkiFX && typeof window.AnkiFX.init === 'function') {
+                afxLog("Engine script ready. Waiting for config to resolve...", "pending");
                 configPromise.then(function (config) {
                     if (engineInitialized) return;
                     try {
                         engineInitialized = true;
+                        afxLog("Initializing AnkiFX (" + (window.AnkiFX.source || 'unknown') + " v" + (window.AnkiFX.version || '1.0.0') + ")...");
                         window.AnkiFX.init(config || {});
-                        console.log("[Loader] AnkiFX visual engine progressively enhanced.");
+                        afxLog("AnkiFX engine initialization success.", "success");
                     } catch (e) {
-                        console.error("[Loader] Engine initialization failed: " + e.message);
+                        afxLog("AnkiFX init failed: " + e.message, "error");
                     }
                 });
             }
@@ -289,13 +299,18 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 
         // --- 3. Parallel Async Script Loading ---
         function loadScriptAsync(src, id) {
+            afxLog("Injecting script: " + src);
             var script = document.createElement("script");
             script.src = src;
             script.async = true;
             if (id) script.id = id;
-            script.onload = tryInitEngine;
+            script.onload = function () {
+                afxLog("Script loaded successfully: " + src, "success");
+                tryInitEngine();
+            };
             script.onerror = function () {
-                console.warn("[Loader] Failed to load script: " + src);
+                afxLog("Script failed to load: " + src, "warn");
+                console.warn("[Card Template] Failed to load script: " + src);
             };
             document.head.appendChild(script);
         }
@@ -311,8 +326,6 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
         setTimeout(tryInitEngine, 500);
     })();
 </script>
-```
-```
 
 ### 🔄 Active Card Lifecycle & Auto-Cleanup (`.ankifx-card`)
 
