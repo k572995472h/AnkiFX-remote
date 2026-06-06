@@ -6,6 +6,7 @@
 <div id="afx-update-banner-root"></div>
 
 <script>
+window.AnkiFX_CDN_URL = window.AnkiFX_CDN_URL || "https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js";
     (function () {
         "use strict";
 
@@ -18,7 +19,7 @@
             var localVersion = metaEl.getAttribute("data-template-version") || "1.0.0";
             var templateName = metaEl.getAttribute("data-template-name") || "front_basic";
 
-            var cdnUrl = window.AnkiFX_CDN_URL || "https://cdn.jsdelivr.net/gh/robkipa/ankifx@dev/build/_ankifx.js";
+            var cdnUrl = window.AnkiFX_CDN_URL;
             var manifestUrl = cdnUrl.replace(/_ankifx\.js$/, "_afx_version.json");
 
             var dismissKey = "afx_dismiss_" + templateName + "_" + localVersion;
@@ -352,12 +353,12 @@
 <script src="_ankifx.js" onerror="console.warn('AnkiFX: Local engine backup not found in collection.media.')"></script>
 
 <!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
-<script id="ankifx-engine-script" src="https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js"
-    onerror="console.warn('AnkiFX: CDN failed to load, using local engine.')"></script>
+<script>
+    document.write('<script id="ankifx-engine-script" src="' + window.AnkiFX_CDN_URL + '" onerror="console.warn(\'AnkiFX: CDN failed to load, using local engine.\')"><\/script>');
+</script>
 
 <script>
     (function () {
-        window.AnkiFX_CDN_URL = "https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js";
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
         function afxLog(msg, level) {
             window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });

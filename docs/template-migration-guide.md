@@ -25,13 +25,16 @@ Updating your templates ensures that all visual themes, timers, text overlays, a
 
 Before modifying anything in Anki, you need to copy the latest template codes from the official AnkiFX repository.
 
-1. Open your web browser and navigate to the official repository page:
-   - **Repository Homepage**: [https://github.com/robkipa/ankifx](https://github.com/robkipa/ankifx)
-   - **Latest Releases Page**: [https://github.com/robkipa/ankifx/releases](https://github.com/robkipa/ankifx/releases)
-2. Locate the latest template files for your note type. You will need:
-   - The **Front Template** code (usually a text file or code block labeled `front` or `front_mcq`).
-   - The **Back Template** code (usually a text file or code block labeled `back` or `back_mcq`).
-3. Keep this page open so you can copy the contents in the next steps.
+Select and open the links below for your note type to view the latest template code:
+
+* **MCQ Note Type**:
+  - **Front Template**: [ankifx_mcq_front.html](https://github.com/robkipa/ankifx/blob/main/build/card%20templates/ankifx_mcq_front.html)
+  - **Back Template**: [ankifx_mcq_back.html](https://github.com/robkipa/ankifx/blob/main/build/card%20templates/ankifx_mcq_back.html)
+* **Basic Note Type**:
+  - **Front Template**: [ankifx_basic_front.html](https://github.com/robkipa/ankifx/blob/main/build/card%20templates/ankifx_basic_front.html)
+  - **Back Template**: [ankifx_basic_back.html](https://github.com/robkipa/ankifx/blob/main/build/card%20templates/ankifx_basic_back.html)
+
+Keep the page open so you can copy the contents in the next steps.
 
 ---
 
