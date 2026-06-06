@@ -3,32 +3,42 @@ import { AnkiFX } from './core/engine.js';
 // Record evaluation history chronologically
 window.AnkiFX_Eval_History = window.AnkiFX_Eval_History || [];
 
-const isAlreadyInitialized = window.AnkiFX && window.AnkiFX.initialized;
+const currentEngine = window.AnkiFX;
+const incomingVersion = AnkiFX.version;
+const activeVersion = currentEngine && currentEngine.version;
+const isAlreadyInitialized = currentEngine && currentEngine.initialized;
+
 let isIgnored = false;
 let ignoreReason = '';
 
-if (isAlreadyInitialized) {
-    isIgnored = true;
-    ignoreReason = `ignored (late ${AnkiFX.source} load)`;
-    console.warn(
-        `[AnkiFX] Late ${AnkiFX.source} evaluation ignored. ` +
-        `Active engine (${window.AnkiFX.source} v${window.AnkiFX.version}) is already running.`
-    );
-} else {
-    const remoteVersion  = AnkiFX.version;   // from this bundle
-    const localVersion   = window.AnkiFX && window.AnkiFX.version;
-    const remoteIsNewer  = !localVersion || isNewerVersion(remoteVersion, localVersion);
+const isNewer = !currentEngine || isNewerVersion(incomingVersion, activeVersion);
 
-    if (remoteIsNewer) {
-        window.AnkiFX = AnkiFX; // safe: not yet initialized, remote wins
-    } else {
-        isIgnored = true;
-        ignoreReason = 'ignored (older version)';
+if (isNewer) {
+    if (isAlreadyInitialized) {
         console.info(
-            `[AnkiFX] Remote v${remoteVersion} is not newer than ` +
-            `local v${localVersion}. Keeping local bundle.`
+            `[AnkiFX] Newer engine version v${incomingVersion} (${AnkiFX.source}) loaded late. ` +
+            `Upgrading and replacing active engine v${activeVersion} (${currentEngine.source})...`
         );
+        try {
+            currentEngine.destroy();
+        } catch (e) {
+            console.error(`[AnkiFX] Error destroying old engine: ${e.message}`);
+        }
+        window.AnkiFX = AnkiFX;
+        try {
+            window.AnkiFX.init(window.AnkiFX_Config);
+        } catch (e) {
+            console.error(`[AnkiFX] Error initializing upgraded engine: ${e.message}`);
+        }
+    } else {
+        window.AnkiFX = AnkiFX;
     }
+} else {
+    isIgnored = true;
+    ignoreReason = `ignored (older or equal version: active=${activeVersion}, incoming=${incomingVersion})`;
+    console.info(
+        `[AnkiFX] Incoming engine v${incomingVersion} is not newer than active engine v${activeVersion}. Ignoring.`
+    );
 }
 
 window.AnkiFX_Eval_History.push({
