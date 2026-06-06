@@ -49,6 +49,13 @@ function copyLocal() {
     } else {
         console.warn(`⚠️  Could not find build/_afx_defaults.json to copy.`);
     }
+
+    const srcVersion = path.join(buildDir, '_afx_version.json');
+    const destVersion = path.join(targetDir, '_afx_version.json');
+    if (fs.existsSync(srcVersion)) {
+        fs.copyFileSync(srcVersion, destVersion);
+        console.log(`🚀 Copied build/_afx_version.json to local media directory.`);
+    }
 }
 
 if (isLocalOnly) {
@@ -139,9 +146,16 @@ const compileConfigsPlugin = {
                 );
                 console.log('✅ Compiled build/_afx_defaults.json successfully.');
 
+                // Copy version manifest directly
+                const versionPath = path.join(configsDir, '_afx_version.json');
+                if (fs.existsSync(versionPath)) {
+                    fs.copyFileSync(versionPath, path.join(buildDir, '_afx_version.json'));
+                    console.log('✅ Copied configs/_afx_version.json to build/_afx_version.json successfully.');
+                }
+
                 // 2. Auto-discover and compile deck-specific overrides
                 const otherConfigs = fs.readdirSync(configsDir)
-                    .filter(f => f.startsWith('_afx_') && f.endsWith('.json') && f !== '_afx_defaults.json');
+                    .filter(f => f.startsWith('_afx_') && f.endsWith('.json') && f !== '_afx_defaults.json' && f !== '_afx_version.json');
 
                 for (const file of otherConfigs) {
                     const filePath = path.join(configsDir, file);

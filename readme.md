@@ -98,7 +98,7 @@ To edit visual effects, customize layouts, or compile the codebase locally:
     npm run watch
     ```
 3.  **Live Preview**:
-    Open `build/card templates/card_front_example.html` or `build/card templates/card_back_example.html` in your browser (e.g., using VS Code's Live Server, or `npx serve build`) to preview changes in real-time.
+    Open `build/card templates/ankifx_basic_front.html` or `build/card templates/ankifx_basic_back.html` in your browser (e.g., using VS Code's Live Server, or `npx serve build`) to preview changes in real-time.
 4.  **Local Anki Auto-Copy (Optional)**:
     To automatically copy compiled build files directly to your Anki `collection.media` folder on every build or save:
     * Create a private, git-ignored `ankifx.local.json` in the root:
@@ -214,118 +214,163 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 <div id="afx-config-field" style="display: none !important;">{{AnkiFXConfig}}</div>
 
 <script>
-    (function () {
-        // --- 0. Configurations & Logs ---
-        var ANKIFX_CDN_URL = "https://cdn.jsdelivr.net/gh/robkipa/ankifx@dev/build/_ankifx.js";
-        window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
-        function afxLog(msg, level) {
-            window.AnkiFX_Loader_Logs.push({ msg: "[Card Template] " + msg, level: level || 'info' });
-        }
-        afxLog("Template loader started.");
-
-        // --- 1. Dynamic Non-Blocking Config Loading ---
+    (function() {
         var fieldContainer = document.getElementById("afx-config-field");
         var configText = fieldContainer ? fieldContainer.textContent.trim() : "";
-        
+        var parsed = false;
+
         function decodeConfig(config) {
             if (config && typeof config.termsText === 'string') {
                 try {
                     config.termsText = decodeURIComponent(escape(atob(config.termsText)));
                 } catch (e) {
-                    afxLog("Failed to decode termsText: " + e.message, "error");
+                    console.error("AnkiFX: Failed to decode termsText base64 string.", e);
                 }
             }
             return config;
         }
 
-        var configPromise = new Promise(function (resolve) {
-            if (configText) {
-                configText = configText.replace(/\u00a0/g, ' ');
-                configText = configText.replace(/,(\s*[\]}])/g, '$1').trim();
-                try {
-                    var parsedConfig = decodeConfig(JSON.parse(configText));
-                    window.AnkiFX_Config = parsedConfig;
-                    afxLog("Embedded config parsed successfully.", "success");
-                    resolve(parsedConfig);
-                    return;
-                } catch (e) {
-                    afxLog("Failed to parse embedded config. Falling back. Error: " + e.message, "warn");
-                }
+        if (configText) {
+            try {
+                window.AnkiFX_Config = decodeConfig(JSON.parse(configText));
+                parsed = true;
+            } catch (e) {
+                console.error("AnkiFX: Failed to parse embedded AnkiFXConfig JSON. Falling back to _afx_defaults.json. Error:", e);
             }
+        }
 
-            afxLog("Fetching fallback config _afx_defaults.json...", "pending");
+        if (!parsed) {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", "_afx_defaults.json", true);
-            xhr.onreadystatechange = function () {
+            xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
-                    var parsed = null;
                     if (xhr.status === 200 || xhr.status === 0) {
                         try {
-                            parsed = decodeConfig(JSON.parse(xhr.responseText));
-                            afxLog("Fallback defaults config loaded.", "success");
+                            window.AnkiFX_Config = decodeConfig(JSON.parse(xhr.responseText));
                         } catch (err) {
-                            afxLog("Failed to parse defaults config: " + err.message, "error");
+                            console.error("AnkiFX: Failed to parse fallback _afx_defaults.json.", err);
                         }
                     } else {
-                        afxLog("Failed to load defaults config. Status: " + xhr.status, "error");
+                        console.error("AnkiFX: Failed to load fallback _afx_defaults.json. Status: " + xhr.status);
                     }
-                    window.AnkiFX_Config = parsed;
-                    resolve(parsed);
                 }
             };
             xhr.send();
-        });
+        }
+    })();
+</script>
 
-        // --- 2. Progressive Engine Initialization ---
-        var engineInitialized = false;
+<!-- Load the local offline engine backup first (static load is 100% mobile-resilient and CORS-safe) -->
+<script src="_ankifx.js" onerror="console.warn('AnkiFX: Local engine backup not found in collection.media.')"></script>
 
-        function tryInitEngine() {
-            if (engineInitialized) return;
-            if (window.AnkiFX && typeof window.AnkiFX.init === 'function') {
-                afxLog("Engine script ready. Waiting for config to resolve...", "pending");
-                configPromise.then(function (config) {
-                    if (engineInitialized) return;
-                    try {
-                        engineInitialized = true;
-                        afxLog("Initializing AnkiFX (" + (window.AnkiFX.source || 'unknown') + " v" + (window.AnkiFX.version || '1.0.0') + ")...");
-                        window.AnkiFX.init(config || {});
-                        afxLog("AnkiFX engine initialization success.", "success");
-                    } catch (e) {
-                        afxLog("AnkiFX init failed: " + e.message, "error");
-                    }
+<!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
+<script id="ankifx-engine-script" src="https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js" onerror="console.warn('AnkiFX: CDN failed to load, using local engine.')"></script>
+
+<script>
+    (function() {
+        window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+        var remoteScript = document.getElementById('ankifx-engine-script');
+        if (remoteScript) {
+            if (window.AnkiFX && window.AnkiFX.source === 'remote') {
+                window.AnkiFX_Remote_Status = "loaded";
+                window.AnkiFX_Loader_Logs.push("Remote engine script loaded (sync).");
+            } else {
+                window.AnkiFX_Remote_Status = "pending";
+                window.AnkiFX_Loader_Logs.push("Remote engine script pending...");
+                remoteScript.addEventListener('load', function() {
+                    window.AnkiFX_Remote_Status = "loaded";
+                    window.AnkiFX_Loader_Logs.push("Remote engine script onload fired (async).");
+                    if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
+                });
+                remoteScript.addEventListener('error', function() {
+                    window.AnkiFX_Remote_Status = "failed";
+                    window.AnkiFX_Loader_Logs.push("Remote engine script onerror fired (async).");
+                    if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
             }
         }
-
-        // --- 3. Parallel Async Script Loading ---
-        function loadScriptAsync(src, id) {
-            afxLog("Injecting script: " + src);
-            var script = document.createElement("script");
-            script.src = src;
-            script.async = true;
-            if (id) script.id = id;
-            script.onload = function () {
-                afxLog("Script loaded successfully: " + src, "success");
-                tryInitEngine();
-            };
-            script.onerror = function () {
-                afxLog("Script failed to load: " + src, "warn");
-                console.warn("[Card Template] Failed to load script: " + src);
-            };
-            document.head.appendChild(script);
-        }
-
-        // Load local engine asynchronously
-        loadScriptAsync("_ankifx.js");
-
-        // Load remote CDN engine asynchronously
-        loadScriptAsync(ANKIFX_CDN_URL, "ankifx-engine-script");
-
-        // Safety fallback check in case script was already cached/evaluated before onload listeners bound
-        setTimeout(tryInitEngine, 100);
-        setTimeout(tryInitEngine, 500);
     })();
 </script>
+
+<script>
+    // Closure-scoped flags to prevent duplicate execution within the same card's lifecycle
+    var contentInitialized = false;
+    var ankiFXInitialized = false;
+
+    /**
+     * Resilient Polling AnkiFX Loader
+     * Periodically polls for ready dependencies to bypass asynchronous WKWebView execution lags.
+     * Prefers the remote CDN engine over the local engine, checking status up to 800ms.
+     */
+    function triggerAnkiFX(attempts = 0) {
+        window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+        if (attempts === 0) {
+            window.AnkiFX_Loader_Logs.push("triggerAnkiFX called.");
+        }
+
+        const remoteScriptExists = !!document.getElementById('ankifx-engine-script');
+        const remoteStatus = window.AnkiFX_Remote_Status || (remoteScriptExists ? "pending" : "none");
+
+        const hasAnkiFX = typeof AnkiFX !== 'undefined';
+        const hasRun = typeof run === 'function';
+        const hasConfig = typeof AnkiFX_Config !== 'undefined';
+
+        if (hasAnkiFX && hasRun && hasConfig) {
+            // Wait for remote engine to finish loading or fail (up to 800ms)
+            const isWaitingForRemote = (remoteStatus === "pending") && (attempts < 16);
+            if (isWaitingForRemote) {
+                if (attempts % 5 === 0) {
+                    window.AnkiFX_Loader_Logs.push("Waiting for remote script (Attempt " + attempts + ", status=" + remoteStatus + ")...");
+                }
+                setTimeout(() => triggerAnkiFX(attempts + 1), 50);
+                return;
+            }
+            
+            // 1. First initialize AnkiFX if it is loaded
+            if (!ankiFXInitialized) {
+                try {
+                    window.AnkiFX_Loader_Logs.push("Initializing AnkiFX engine (Source: " + (AnkiFX.source || 'local') + ", Version: " + (AnkiFX.version || '1.0.0') + ")...");
+                    ankiFXInitialized = true;
+                    AnkiFX.init();
+                    window.AnkiFX_Loader_Logs.push("AnkiFX.init() success.");
+                } catch (e) {
+                    window.AnkiFX_Loader_Logs.push("AnkiFX init error: " + e.message);
+                    console.error("AnkiFX Start Error:", e);
+                }
+            }
+
+            // 2. Then run the card's native content/table generator
+            if (!contentInitialized) {
+                try {
+                    window.AnkiFX_Loader_Logs.push("Running card content run()...");
+                    contentInitialized = true;
+                    run();
+                    window.AnkiFX_Loader_Logs.push("Card content run() success.");
+                } catch (e) {
+                    window.AnkiFX_Loader_Logs.push("Card content error: " + e.message);
+                    console.error("Card Content Run Error:", e);
+                }
+            }
+        } else if (attempts < 60) { // Poll for ~3 seconds
+            if (attempts % 10 === 0) {
+                window.AnkiFX_Loader_Logs.push("Polling (Attempt " + attempts + ": AnkiFX=" + hasAnkiFX + ", run=" + hasRun + ", Config=" + hasConfig + ")...");
+            }
+            setTimeout(() => triggerAnkiFX(attempts + 1), 50);
+        } else {
+            const err = "Loader timed out after 3.0s. AnkiFX: " + (hasAnkiFX ? "Loaded" : "FAILED") + ", run(): " + (hasRun ? "Defined" : "UNDEFINED") + ", Config: " + (hasConfig ? "Loaded" : "FAILED");
+            window.AnkiFX_Loader_Logs.push(err);
+            console.error(err);
+        }
+    }
+
+    // --- FINAL EXECUTION TRIGGER ---
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        triggerAnkiFX();
+    } else {
+        document.addEventListener('DOMContentLoaded', triggerAnkiFX);
+    }
+</script>
+```
 
 ### 🔄 Active Card Lifecycle & Auto-Cleanup (`.ankifx-card`)
 
