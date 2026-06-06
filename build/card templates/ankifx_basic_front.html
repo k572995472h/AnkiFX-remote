@@ -354,7 +354,13 @@
 
 <!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
 <script>
-    document.write('<script id="ankifx-engine-script" src="' + window.AnkiFX_CDN_URL + '" onerror="console.warn(\'AnkiFX: CDN failed to load, using local engine.\')"><\/script>');
+    (function() {
+        var script = document.createElement('script');
+        script.id = 'ankifx-engine-script';
+        script.src = window.AnkiFX_CDN_URL;
+        script.onerror = function() { console.warn('AnkiFX: CDN failed to load, using local engine.'); };
+        document.head.appendChild(script);
+    })();
 </script>
 
 <script>
