@@ -77,6 +77,9 @@
             if (window.AnkiFX && window.AnkiFX.source === 'remote') {
                 window.AnkiFX_Remote_Status = "loaded";
                 afxLog("Remote engine script loaded (sync).", "success");
+            } else if (window.AnkiFX && window.AnkiFX.initialized) {
+                window.AnkiFX_Remote_Status = "loaded";
+                afxLog("Engine already running, remote check bypassed.", "success");
             } else {
                 window.AnkiFX_Remote_Status = "pending";
                 afxLog("Remote engine script pending...", "pending");
@@ -126,7 +129,8 @@
 
         if (hasAnkiFX && hasRun && hasConfig) {
             // Wait for remote engine to finish loading or fail (up to 800ms)
-            const isWaitingForRemote = (remoteStatus === "pending") && (attempts < 16);
+            const isAlreadyInitialized = window.AnkiFX && window.AnkiFX.initialized;
+            const isWaitingForRemote = !isAlreadyInitialized && (remoteStatus === "pending") && (attempts < 16);
             if (isWaitingForRemote) {
                 if (attempts % 5 === 0) {
                     afxLog("Waiting for remote script (Attempt " + attempts + ", status=" + remoteStatus + ")...", "pending");
