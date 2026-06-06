@@ -11,13 +11,13 @@ function extractVersioningScript(filePath) {
     const marker = 'id="afx-update-banner-root"></div>';
     const markerIdx = html.indexOf(marker);
     if (markerIdx === -1) throw new Error('Could not find update banner root in ' + filePath);
-    
+
     const startScriptIdx = html.indexOf('<script>', markerIdx);
     const endScriptIdx = html.indexOf('</script>', startScriptIdx);
     if (startScriptIdx === -1 || endScriptIdx === -1) {
         throw new Error('Could not find script block after banner root in ' + filePath);
     }
-    
+
     return html.substring(startScriptIdx + 8, endScriptIdx);
 }
 
@@ -25,26 +25,26 @@ describe('Template Versioning System - Pure Logic', () => {
     let isNewer;
 
     it('extracts and parses comparison logic correctly', () => {
-        const scriptCode = extractVersioningScript(path.join(__dirname, '../build/card templates/front_mcq.html'));
-        
+        const scriptCode = extractVersioningScript(path.join(__dirname, '../build/card templates/ankifx_mcq_front.html'));
+
         // Expose internal functions by locating the end of requestIdleCallback callback and injecting assignments
         const iifeIdx = scriptCode.lastIndexOf('})();');
         if (iifeIdx === -1) throw new Error('Could not find end of IIFE');
         const cbCloseIdx = scriptCode.lastIndexOf('});', iifeIdx);
         if (cbCloseIdx === -1) throw new Error('Could not find requestIdleCallback callback closing');
-        
+
         const modifiedScript = scriptCode.substring(0, cbCloseIdx) +
             'window.parseVersion = parseVersion; window.isNewer = isNewer;\n});' +
             scriptCode.substring(cbCloseIdx + 3);
-            
+
         const mockWindow = {
             requestIdleCallback: (cb) => cb(),
             requestAnimationFrame: (cb) => cb(),
-            fetch: () => new Promise(() => {}), // Return pending promise to prevent network activity or XHR fallback
-            AbortController: global.AbortController || function() { this.signal = {}; }
+            fetch: () => new Promise(() => { }), // Return pending promise to prevent network activity or XHR fallback
+            AbortController: global.AbortController || function () { this.signal = {}; }
         };
         mockWindow.window = mockWindow;
-        
+
         const mockContext = {
             window: mockWindow,
             document: {
@@ -63,13 +63,13 @@ describe('Template Versioning System - Pure Logic', () => {
             },
             sessionStorage: { getItem: () => null }, // Do not dismiss so requestIdleCallback completes and registers functions
             localStorage: { getItem: () => null },
-            setTimeout: () => {},
-            clearTimeout: () => {},
-            AbortController: global.AbortController || function() { this.signal = {}; }
+            setTimeout: () => { },
+            clearTimeout: () => { },
+            AbortController: global.AbortController || function () { this.signal = {}; }
         };
-        
+
         vm.runInNewContext(modifiedScript, mockContext);
-        
+
         isNewer = mockContext.window.isNewer;
         assert.equal(typeof isNewer, 'function');
     });
@@ -116,11 +116,11 @@ describe('Template Versioning System - Pure Logic', () => {
 describe('Template Versioning System - DOM & Network Integration', () => {
     it('injects update banner when remote version is newer', (t) => {
         return new Promise((resolve, reject) => {
-            const scriptCode = extractVersioningScript(path.join(__dirname, '../build/card templates/front_mcq.html'));
-            
+            const scriptCode = extractVersioningScript(path.join(__dirname, '../build/card templates/ankifx_mcq_front.html'));
+
             let bannerInjected = false;
             let injectedContent = '';
-            
+
             const mockWindow = {
                 requestIdleCallback: (cb) => cb(),
                 requestAnimationFrame: (cb) => cb(),
@@ -141,7 +141,7 @@ describe('Template Versioning System - DOM & Network Integration', () => {
                         }))
                     });
                 },
-                AbortController: global.AbortController || function() {
+                AbortController: global.AbortController || function () {
                     this.signal = {};
                 }
             };
@@ -166,7 +166,7 @@ describe('Template Versioning System - DOM & Network Integration', () => {
                                     try {
                                         bannerInjected = true;
                                         injectedContent = el.innerHTML;
-                                        
+
                                         // Assertions on injected DOM elements
                                         assert.ok(injectedContent.includes('Template Update Available'));
                                         assert.ok(injectedContent.includes('v1.0.0'));
@@ -189,36 +189,36 @@ describe('Template Versioning System - DOM & Network Integration', () => {
                             className: '',
                             innerHTML: '',
                             querySelector: (sel) => {
-                                return { addEventListener: () => {} };
+                                return { addEventListener: () => { } };
                             },
-                            classList: { add: () => {} },
-                            addEventListener: () => {}
+                            classList: { add: () => { } },
+                            addEventListener: () => { }
                         };
                     },
                     head: {
-                        appendChild: () => {}
+                        appendChild: () => { }
                     }
                 },
                 sessionStorage: {
                     getItem: () => null,
-                    setItem: () => {}
+                    setItem: () => { }
                 },
                 localStorage: {
                     getItem: () => null,
-                    setItem: () => {}
+                    setItem: () => { }
                 },
                 setTimeout: (cb) => cb(),
-                clearTimeout: () => {},
-                AbortController: global.AbortController || function() {
+                clearTimeout: () => { },
+                AbortController: global.AbortController || function () {
                     this.signal = {};
                 },
                 XMLHttpRequest: class {
-                    open() {}
-                    send() {}
-                    abort() {}
+                    open() { }
+                    send() { }
+                    abort() { }
                 }
             };
-            
+
             try {
                 vm.runInNewContext(scriptCode, mockContext);
             } catch (e) {
@@ -229,15 +229,15 @@ describe('Template Versioning System - DOM & Network Integration', () => {
 
     it('fails silently and does not warn if network is unreachable', (t) => {
         return new Promise((resolve, reject) => {
-            const scriptCode = extractVersioningScript(path.join(__dirname, '../build/card templates/front_mcq.html'));
-            
+            const scriptCode = extractVersioningScript(path.join(__dirname, '../build/card templates/ankifx_mcq_front.html'));
+
             let bannerInjected = false;
-            
+
             const mockWindow = {
                 requestIdleCallback: (cb) => cb(),
                 requestAnimationFrame: (cb) => cb(),
                 fetch: () => Promise.reject(new Error('Network offline')),
-                AbortController: global.AbortController || function() {
+                AbortController: global.AbortController || function () {
                     this.signal = {};
                 }
             };
@@ -265,18 +265,18 @@ describe('Template Versioning System - DOM & Network Integration', () => {
                         }
                         return null;
                     },
-                    createElement: () => ({ classList: { add: () => {} } }),
-                    head: { appendChild: () => {} }
+                    createElement: () => ({ classList: { add: () => { } } }),
+                    head: { appendChild: () => { } }
                 },
                 sessionStorage: { getItem: () => null },
                 localStorage: { getItem: () => null },
                 setTimeout: (cb) => cb(),
-                clearTimeout: () => {},
-                AbortController: global.AbortController || function() {
+                clearTimeout: () => { },
+                AbortController: global.AbortController || function () {
                     this.signal = {};
                 },
                 XMLHttpRequest: class {
-                    open() {}
+                    open() { }
                     send() {
                         if (this.onerror) {
                             try {
@@ -286,13 +286,13 @@ describe('Template Versioning System - DOM & Network Integration', () => {
                             }
                         }
                     }
-                    abort() {}
+                    abort() { }
                 }
             };
-            
+
             try {
                 vm.runInNewContext(scriptCode, mockContext);
-                
+
                 // Wait a tick to confirm no injection occurred
                 setTimeout(() => {
                     try {
