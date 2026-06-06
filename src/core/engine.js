@@ -97,6 +97,11 @@ function init(templateOptions = {}) {
     state.initialized = true;
     attachCardObserver(state);
     reparentNativeElements();
+
+    const scheduleCheck = window.requestIdleCallback || function (cb) { setTimeout(cb, 0); };
+    scheduleCheck(() => {
+        detectLegacyTemplate();
+    });
 }
 
 function injectCSS() {
@@ -191,7 +196,164 @@ function destroy() {
     state.currentEffectId = null;
     state.initialized = false;
 
+    const legacyToast = document.getElementById('afx-legacy-toast');
+    if (legacyToast) legacyToast.remove();
+
     console.log('[AnkiFX] Destroyed.');
+}
+
+// --- Legacy template migration detection and toast system ---
+const inMemoryStorage = {};
+
+function getSessionValue(key) {
+    try {
+        if (typeof sessionStorage !== 'undefined') {
+            return sessionStorage.getItem(key);
+        }
+    } catch (e) {}
+    return null;
+}
+
+function getLocalValue(key) {
+    try {
+        if (typeof localStorage !== 'undefined') {
+            return localStorage.getItem(key);
+        }
+    } catch (e) {}
+    return null;
+}
+
+function setSessionValue(key, val) {
+    try {
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(key, val);
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
+function setLocalValue(key, val) {
+    try {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(key, val);
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
+function isToastShown(templateName) {
+    const key = `afx_legacy_toast_${templateName}`;
+    
+    const sessionVal = getSessionValue(key);
+    if (sessionVal !== null) {
+        return sessionVal === 'true';
+    }
+    
+    const localVal = getLocalValue(key);
+    if (localVal !== null) {
+        return localVal === 'true';
+    }
+    
+    return !!inMemoryStorage[key];
+}
+
+function setToastShown(templateName) {
+    const key = `afx_legacy_toast_${templateName}`;
+    
+    if (setSessionValue(key, 'true')) {
+        return;
+    }
+    if (setLocalValue(key, 'true')) {
+        return;
+    }
+    inMemoryStorage[key] = true;
+}
+
+export function detectLegacyTemplate() {
+    if (!window.AnkiFX || !window.AnkiFX.initialized) return;
+
+    const metaEl = document.getElementById('ankifx-template-meta');
+    let isLegacy = false;
+    let templateName = 'unknown';
+
+    if (!metaEl) {
+        isLegacy = true;
+    } else {
+        const name = metaEl.getAttribute('data-template-name');
+        const version = metaEl.getAttribute('data-template-version');
+        
+        if (!name) {
+            isLegacy = true;
+        } else {
+            templateName = name.trim();
+        }
+        
+        if (!version || version.trim() === '') {
+            isLegacy = true;
+        }
+    }
+
+    if (isLegacy) {
+        showLegacyMigrationToast(templateName);
+    }
+}
+
+export function showLegacyMigrationToast(templateName = 'unknown') {
+    if (isToastShown(templateName)) return;
+    if (document.getElementById('afx-legacy-toast')) return;
+
+    const toast = document.createElement('div');
+    toast.id = 'afx-legacy-toast';
+    toast.className = 'afx-legacy-toast-container';
+
+    const cdnUrl = window.AnkiFX_CDN_URL || 'https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js';
+
+    toast.innerHTML = `
+        <div class="afx-legacy-toast-content">
+            <div class="afx-legacy-toast-title">Legacy Template Detected</div>
+            <div>
+                An update is required for full AnkiFX compatibility.<br>
+                Please update your template from: <a class="afx-legacy-toast-link" href="${cdnUrl}" target="_blank">${cdnUrl}</a>
+            </div>
+        </div>
+        <button class="afx-legacy-toast-close" title="Dismiss">&times;</button>
+    `;
+
+    // Save persistence immediately upon display
+    setToastShown(templateName);
+
+    const closeBtn = toast.querySelector('.afx-legacy-toast-close');
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toast.classList.remove('afx-legacy-visible');
+        setTimeout(() => {
+            toast.remove();
+        }, 400);
+    });
+
+    const link = toast.querySelector('.afx-legacy-toast-link');
+    if (link) {
+        link.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
+
+    // Prevent touch/click event propagation to block card flips/mcq interactions
+    const stopProps = (e) => e.stopPropagation();
+    ['touchstart', 'touchend', 'mousedown', 'mouseup', 'click'].forEach((evt) => {
+        toast.addEventListener(evt, stopProps, { passive: true });
+    });
+
+    document.body.appendChild(toast);
+
+    // Trigger visual entry animation
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.classList.add('afx-legacy-visible');
+        });
+    });
 }
 
 // --- Source detection ---
@@ -236,6 +398,8 @@ export const AnkiFX = {
     startMarqueeLoop: () => startMarqueeLoop(state),
     renderEffectControls,
     setControlValue,
+    detectLegacyTemplate,
+    showLegacyMigrationToast,
     get version() { return _version; },
     get buildDate() { return _buildDate; },
     get source() { return _source; },
