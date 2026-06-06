@@ -18,7 +18,7 @@
                 try {
                     config.termsText = decodeURIComponent(escape(atob(config.termsText)));
                 } catch (e) {
-                    console.error("AnkiFX: Failed to decode termsText base64 string.", e);
+                    console.error("[Loader] Failed to decode termsText base64 string: " + e.message);
                 }
             }
             return config;
@@ -33,7 +33,7 @@
                 window.AnkiFX_Config = decodeConfig(JSON.parse(configText));
                 parsed = true;
             } catch (e) {
-                console.error("AnkiFX: Failed to parse embedded AnkiFXConfig JSON. Falling back to _afx_defaults.json. Error:", e);
+                console.error("[Loader] Failed to parse embedded AnkiFXConfig JSON. Falling back to _afx_defaults.json. Error: " + e.message);
             }
         }
 
@@ -46,11 +46,11 @@
                         try {
                             window.AnkiFX_Config = decodeConfig(JSON.parse(xhr.responseText));
                         } catch (err) {
-                            console.error("AnkiFX: Failed to parse fallback _afx_defaults.json.", err);
+                            console.error("[Loader] Failed to parse fallback _afx_defaults.json: " + err.message);
                             window.AnkiFX_Config = null; // Unblock loader on parse error
                         }
                     } else {
-                        console.error("AnkiFX: Failed to load fallback _afx_defaults.json. Status: " + xhr.status);
+                        console.error("[Loader] Failed to load fallback _afx_defaults.json. Status: " + xhr.status);
                         window.AnkiFX_Config = null; // Unblock loader on load error
                     }
                 }
@@ -61,16 +61,16 @@
 </script>
 
 <!-- Load the local offline engine backup first (static load is 100% mobile-resilient and CORS-safe) -->
-<script src="_ankifx.js" onerror="console.warn('AnkiFX: Local engine backup not found in collection.media.')"></script>
+<script src="_ankifx.js" onerror="console.warn('[Loader] Local engine backup not found in collection.media.')"></script>
 
 <!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
-<script id="ankifx-engine-script" src="https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js" onerror="console.warn('AnkiFX: CDN failed to load, using local engine.')"></script>
+<script id="ankifx-engine-script" src="https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js" onerror="console.warn('[Loader] CDN failed to load, using local engine.')"></script>
 
 <script>
     (function() {
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
         function afxLog(msg, level) {
-            window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });
+            window.AnkiFX_Loader_Logs.push({ msg: "[Loader] " + msg, level: level || 'info' });
         }
         var remoteScript = document.getElementById('ankifx-engine-script');
         if (remoteScript) {
@@ -102,7 +102,7 @@
     // Initialize global loader logs
     window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
     function afxLog(msg, level) {
-        window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });
+        window.AnkiFX_Loader_Logs.push({ msg: "[Loader] " + msg, level: level || 'info' });
     }
     afxLog("Template loaded.", "info");
 
@@ -147,7 +147,7 @@
                     afxLog("AnkiFX.init() success.", "success");
                 } catch (e) {
                     afxLog("AnkiFX init error: " + e.message, "error");
-                    console.error("AnkiFX Start Error:", e);
+                    console.error("[Loader] Start Error: " + e.message);
                 }
             }
 
@@ -160,7 +160,7 @@
                     afxLog("Card content run() success.", "success");
                 } catch (e) {
                     afxLog("Card content error: " + e.message, "error");
-                    console.error("Card Content Run Error:", e);
+                    console.error("[Loader] Card Content Run Error: " + e.message);
                 }
             }
         } else if (attempts < 60) { // Poll for ~3 seconds
@@ -171,7 +171,7 @@
         } else {
             const err = "Loader timed out after 3.0s. AnkiFX: " + (hasAnkiFX ? "Loaded" : "FAILED") + ", run(): " + (hasRun ? "Defined" : "UNDEFINED") + ", Config: " + (hasConfig ? "Loaded" : "FAILED");
             afxLog(err, "error");
-            console.error(err);
+            console.error("[Loader] " + err);
             // Graceful fallback: always execute card content even if loader fails/timeouts
             if (hasRun && !contentInitialized) {
                 try {
@@ -179,7 +179,7 @@
                     contentInitialized = true;
                     run();
                 } catch (runErr) {
-                    console.error("AnkiFX Fallback Card Content Run Error:", runErr);
+                    console.error("[Loader] Fallback Card Content Run Error: " + runErr.message);
                 }
             }
         }
