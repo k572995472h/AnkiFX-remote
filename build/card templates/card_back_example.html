@@ -1,10 +1,9 @@
 <!-- Plain, Generic Back Template Layout -->
-<div class="anki-card-container">
-    <h2 id="card-title">{{Title}}</h2>
-    <div id="card-question">{{Question}}</div>
-    <hr id="answer-separator">
-    <div id="card-answer">{{Answer}}</div>
-</div>
+{{FrontSide}}
+
+<hr id=answer>
+
+{{Back}}
 <div id="afx-config-field" style="display: none !important;">{{AnkiFXConfig}}</div>
 <div class="ankifx-card" style="display:none;"></div>
 <img src="_ankifx.js" style="display:none !important;">
