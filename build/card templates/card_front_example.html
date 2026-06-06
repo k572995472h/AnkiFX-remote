@@ -3,12 +3,12 @@
 <script>
     (function () {
         // --- 0. Configurations ---
-        var ANKIFX_CDN_URL = "https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js";
+        var ANKIFX_CDN_URL = "https://cdn.jsdelivr.net/gh/robkipa/ankifx@dev/build/_ankifx.js";
 
         // --- 1. Dynamic Non-Blocking Config Loading ---
         var fieldContainer = document.getElementById("afx-config-field");
         var configText = fieldContainer ? fieldContainer.textContent.trim() : "";
-        
+
         function decodeConfig(config) {
             if (config && typeof config.termsText === 'string') {
                 try {

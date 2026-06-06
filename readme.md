@@ -216,7 +216,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 <script>
     (function () {
         // --- 0. Configurations ---
-        var ANKIFX_CDN_URL = "https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js";
+        var ANKIFX_CDN_URL = "https://cdn.jsdelivr.net/gh/robkipa/ankifx@dev/build/_ankifx.js";
 
         // --- 1. Dynamic Non-Blocking Config Loading ---
         var fieldContainer = document.getElementById("afx-config-field");
