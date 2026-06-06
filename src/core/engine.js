@@ -308,14 +308,12 @@ export function showLegacyMigrationToast(templateName = 'unknown') {
     toast.id = 'afx-legacy-toast';
     toast.className = 'afx-legacy-toast-container';
 
-    const cdnUrl = window.AnkiFX_CDN_URL || 'https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js';
-
     toast.innerHTML = `
         <div class="afx-legacy-toast-content">
             <div class="afx-legacy-toast-title">Legacy Template Detected</div>
             <div>
                 An update is required for full AnkiFX compatibility.<br>
-                Please update your template from: <a class="afx-legacy-toast-link" href="${cdnUrl}" target="_blank">${cdnUrl}</a>
+                Please see the <a class="afx-legacy-toast-link" href="https://github.com/robkipa/ankifx/blob/main/docs/template-migration-guide.md" target="_blank">Template Update Guide</a> for step-by-step instructions.
             </div>
         </div>
         <button class="afx-legacy-toast-close" title="Dismiss">&times;</button>
