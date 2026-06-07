@@ -11,7 +11,10 @@ import { isNewerVersion } from './core/version.js';
         rafCallsLastSecond++;
         return originalRAF(cb);
     };
-    setInterval(() => {
+    if (window.__raf_diagnostic_interval__) {
+        clearInterval(window.__raf_diagnostic_interval__);
+    }
+    window.__raf_diagnostic_interval__ = setInterval(() => {
         const estLoops = Math.round(rafCallsLastSecond / 60);
         console.log(`[Diagnostic] RAF Stats: Total=${activeLoops}, Calls/sec=${rafCallsLastSecond} (~${estLoops} active loops)`);
         rafCallsLastSecond = 0;

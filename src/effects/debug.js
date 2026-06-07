@@ -3,7 +3,7 @@ let currentW, currentH;
 let debugContainer = null;
 
 const maxCapturedLogs = 200;
-const capturedLogs = [];
+window.AnkiFX_Captured_Logs = window.AnkiFX_Captured_Logs || [];
 let onLogAdded = null;
 let currentFilter = 'all';
 
@@ -56,14 +56,14 @@ const captureLog = (type, args) => {
         return String(arg);
     }).join(' ');
 
-    capturedLogs.push({
+    window.AnkiFX_Captured_Logs.push({
         type,
         message,
         timestamp: new Date().toLocaleTimeString()
     });
 
-    if (capturedLogs.length > maxCapturedLogs) {
-        capturedLogs.shift();
+    if (window.AnkiFX_Captured_Logs.length > maxCapturedLogs) {
+        window.AnkiFX_Captured_Logs.shift();
     }
 
     if (onLogAdded) {
@@ -272,7 +272,7 @@ export function runDebug(contexts, config) {
     if (clearConsoleBtn) {
         clearConsoleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            capturedLogs.length = 0;
+            window.AnkiFX_Captured_Logs.length = 0;
         });
     }
 
@@ -559,7 +559,7 @@ export function runDebug(contexts, config) {
         }
 
         // Update Console Logs Panel
-        const filteredLogs = capturedLogs.filter(log => {
+        const filteredLogs = window.AnkiFX_Captured_Logs.filter(log => {
             if (currentFilter === 'all') return true;
             return log.type === currentFilter;
         });
