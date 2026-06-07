@@ -121,9 +121,19 @@ const compileConfigsPlugin = {
             // Ensure build/ folder exists
             if (!fs.existsSync(buildDir)) fs.mkdirSync(buildDir, { recursive: true });
 
-            // Ensure build/configs/ folder exists (untracked)
+            // Ensure build/configs/ folder exists and is clear (untracked)
             const buildConfigsDir = path.join(buildDir, 'configs');
-            if (!fs.existsSync(buildConfigsDir)) fs.mkdirSync(buildConfigsDir, { recursive: true });
+            if (fs.existsSync(buildConfigsDir)) {
+                // Clear any existing config files to prevent orphaned config leaks
+                const existingConfigs = fs.readdirSync(buildConfigsDir);
+                for (const file of existingConfigs) {
+                    try {
+                        fs.unlinkSync(path.join(buildConfigsDir, file));
+                    } catch (e) {}
+                }
+            } else {
+                fs.mkdirSync(buildConfigsDir, { recursive: true });
+            }
 
             try {
                 const configsDir = path.join(__dirname, 'configs');
