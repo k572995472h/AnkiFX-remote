@@ -14,11 +14,11 @@ export const effect = {
     onResize: (w, h) => {
         const docEl = document.documentElement;
         const style = docEl ? getComputedStyle(docEl) : null;
-        const topInset = style ? (parseInt(style.getPropertyValue('--io-header')) || 0) : 0;
-        const visibleH = h - topInset;
+        viewportTopInset = style ? (parseInt(style.getPropertyValue('--io-header')) || 0) : 0;
+        viewportVisibleHeight = h - viewportTopInset;
 
         currentW = w / 8;
-        currentH = visibleH / 8;
+        currentH = viewportVisibleHeight / 8;
         if (ff) {
             const localTileSize = tileSize / 8;
             const cols = Math.ceil(currentW / localTileSize);
@@ -32,7 +32,7 @@ export const effect = {
             currentCanvas.style.width = currentW + 'px';
             currentCanvas.style.height = currentH + 'px';
             currentCanvas.style.position = 'absolute';
-            currentCanvas.style.top = topInset + 'px';
+            currentCanvas.style.top = viewportTopInset + 'px';
             currentCanvas.style.left = '0';
             currentCanvas.style.transform = 'scale(8)';
             currentCanvas.style.transformOrigin = 'top left';
@@ -51,6 +51,8 @@ let currentCanvas = null;
 let time = 0;
 let lastStep = 0;
 let mouse = { x: -1000, y: -1000 };
+let viewportTopInset = 0;
+let viewportVisibleHeight = 0;
 
 // --- HELPERS ---
 
@@ -197,12 +199,12 @@ export function runAurora(contexts, config) {
     currentCanvas = contexts.canvas2D;
     currentCanvas.classList.add('afx-aurora-active');
 
-    const topInset = contexts.topInset || 0;
-    const visibleH = contexts.visibleHeight || contexts.height;
+    viewportTopInset = contexts.topInset || 0;
+    viewportVisibleHeight = contexts.visibleHeight || contexts.height;
 
     // Set internal dimensions to 1/8th for the low quality buffer effect
     currentW = contexts.width / 8;
-    currentH = visibleH / 8;
+    currentH = viewportVisibleHeight / 8;
     
     currentCanvas.width = currentW * contexts.dpr;
     currentCanvas.height = currentH * contexts.dpr;
@@ -213,7 +215,7 @@ export function runAurora(contexts, config) {
     currentCanvas.style.width = currentW + 'px';
     currentCanvas.style.height = currentH + 'px';
     currentCanvas.style.position = 'absolute';
-    currentCanvas.style.top = topInset + 'px';
+    currentCanvas.style.top = viewportTopInset + 'px';
     currentCanvas.style.left = '0';
     currentCanvas.style.transform = 'scale(8)';
     currentCanvas.style.transformOrigin = 'top left';
@@ -290,10 +292,8 @@ export function runAurora(contexts, config) {
 
 export function drawOverlay(ctx, w, h, timestamp) {
     // Render Stars crisp & twinkling on the high-resolution overlay canvas strictly within the visible document
-    const docEl = document.documentElement;
-    const style = docEl ? getComputedStyle(docEl) : null;
-    const topInset = style ? (parseInt(style.getPropertyValue('--io-header')) || 0) : 0;
-    const visibleH = h - topInset;
+    const topInset = viewportTopInset;
+    const visibleH = viewportVisibleHeight || h;
 
     ctx.fillStyle = '#ffffff';
     stars.forEach(star => {

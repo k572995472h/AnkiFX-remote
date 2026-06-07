@@ -1,73 +1,106 @@
-# AnkiFX Pre-Release Codebase Review: Release Readiness Audit (v1.0.0)
+# AnkiFX — Pre-v1.0.0 Codebase Review Report
 
-This document presents a comprehensive pre-release review of the AnkiFX codebase, documentation, build system, and developer experience. The audit assumes the project is preparing for its first public `v1.0.0` release.
-
----
-
-## 1. Executive Summary
-
-AnkiFX is a highly polished, visually stunning, and functionally rich visual engine. By integrating complex animations (WebGL, Canvas2D) and retro audio processing into a lightweight, persistent context system, it successfully bypasses native Anki WebView limitations. 
-
-The codebase exhibits modern modular standards, utilizing an automated build-time effects registry and robust viewport height calculations suited for Anki's custom iOS and Android wrappers. The test suite provides automated build and schema smoke tests.
-
-However, several **critical race conditions, memory leaks, and configuration mismatches** must be resolved before tagging the `v1.0.0` release to guarantee long-term stability and prevent user experience degradation (such as locked scripts, frozen text animation, BGM leaks, and browser crashes).
+This pre-release review of the `dev` branch of AnkiFX (`github.com/robkipa/ankifx`) identifies blockers, improvements, hygiene items, and documentation gaps that must be resolved before tagging version `v1.0.0`.
 
 ---
 
-## 2. Post-Remediation Verification Results
+## Blockers (🔴)
 
-### 2.1. Late CDN Load Overwrites Active Instance and Freezes UI (Architecture / Reliability)
-* **Status**: ✅ Verified Complete
-* **Reasoning**: The loader logic now correctly tracks dynamic engine state using the `AnkiFX.initialized` getter. If a late script evaluations detects an already-initialized instance, it issues a console warning and exits early. If an uninitialized instance is present, it dynamically evaluates the version strings using `isNewerVersion` (which strips the trailing commit hashes) and replaces the global reference only if the incoming remote bundle has a higher version. Chronological loader evaluation history is preserved in `window.AnkiFX_Eval_History` for auditability.
+### 1. Hardcoded CDN URL Points to `@dev` Branch
+* **Reference**: [ankifx_mcq_front.html:L16](file:///Users/robertkipa/Projects/ankifx/build/card%20templates/ankifx_mcq_front.html#L16) & [ankifx_basic_front.html:L9](file:///Users/robertkipa/Projects/ankifx/build/card%20templates/ankifx_basic_front.html#L9)
+* **Problem**: The CDN script URL is hardcoded to target the `@dev` branch on GitHub instead of the stable `@latest` or `@v1` tag.
+* **Recommendation**: Update the `AnkiFX_CDN_URL` references in the front templates to use `@latest` or `@v1` so that production users load stable engine code.
 
-### 2.2. Audio Continues Playing After BGM is Toggled Off (Audio Race Condition)
-* **Status**: ❌ Not Correctly Implemented (Remediated: ✅ Verified Complete)
-* **Reasoning**: The initial fix added `this._opId++` to `stop()` to invalidate pending async track fetches. However, because `playNext()` and `playPrevious()` called `this.stop()` immediately *after* capturing the new operation ID (`const opId = ++this._opId; this.stop();`), the call to `stop()` incremented the operation ID a second time, immediately invalidating the new play request. As a result, all track playback was broken and silent. 
-* **Remediation**: We resolved this regression during the audit by swapping the execution order in `src/core/jukebox.js` so that `this.stop()` runs *before* the new operation ID is incremented (`this.stop(); const opId = ++this._opId;`). This successfully invalidates any existing loading operations without self-invalidating the new playback operation. The fix has been compiled and verified to function correctly.
-
-### 2.3. Opt-in Terms Modal Forces Definition of termsText (Build & Schema Failure)
-* **Status**: ✅ Verified Complete
-* **Reasoning**: Removed `termsText` from required fields in the build-time schema validator (`scripts/validate-config.js`) and set the default value in `DEFAULT_CONFIG` to `null`. At runtime, `overlay.js` verifies if `termsText` is a non-empty string before drawing the overlay. If omitted or empty, it skips the terms modal. Configuration validation unit tests were added to prevent future schema regressions.
-
-### 2.4. WebGL Program & Buffer Leak in Fractal Effects (Performance / Memory)
-* **Status**: ✅ Verified Complete
-* **Reasoning**: `createFullscreenProgram` now detaches and deletes individual compiled vertex and fragment shader objects immediately after program linking to prevent GPU leaks. The function returns `{ program, buffer }`. The `julia` and `mandelbrot` effects cache references to these objects in file-level variables and cleanly call `gl.deleteProgram` and `gl.deleteBuffer` within their `stop()` methods, fully freeing up WebGL memory when switching effects.
-
-### 2.5. Outdated Card Template Paths in README (Developer Experience)
-* **Status**: ✅ Verified Complete
-* **Reasoning**: All links in `readme.md` have been updated to point to the correct subdirectory structure: `build/card templates/card_front_example.html` and `build/card templates/card_back_example.html`.
-
-### 2.6. README Loader Template Mismatch (Documentation Quality)
-* **Status**: ✅ Verified Complete
-* **Reasoning**: The loader script template in `readme.md` has been aligned with the logging guidelines and the actual html templates, replacing raw string logs with structured `afxLog(msg, level)` calls pushing `{ msg, level }` objects.
+### 2. Inconsistent Version Gating/Comparison Logic
+* **Reference**: [index.js:L77-L86](file:///Users/robertkipa/Projects/ankifx/src/index.js#L77-L86) vs [ankifx_mcq_front.html:L90-L110](file:///Users/robertkipa/Projects/ankifx/build/card%20templates/ankifx_mcq_front.html#L90-L110)
+* **Problem**: The template loader uses a robust version comparator that handles pre-releases (`alpha`, `beta`, `rc`), but the runtime bundle's takeover logic in `index.js` (`isNewerVersion`) strips everything after the hyphen, causing it to incorrectly ignore upgrades from beta/RC versions to stable versions.
+* **Recommendation**: Port the semantic version parsing and comparison logic from the templates into the bundle's `index.js` loader.
 
 ---
 
-# Final Pre-v1 Checklist
+## Should Fix Before v1 (🟡)
 
-These high-leverage release blockers must be completed before tagging the v1.0.0 release:
+### 1. Layout Thrashing in `aurora.js` and `debug.js` Render Loops
+* **Reference**: [aurora.js:L294-L295](file:///Users/robertkipa/Projects/ankifx/src/effects/aurora.js#L294-L295) & [debug.js:L350-L354](file:///Users/robertkipa/Projects/ankifx/src/effects/debug.js#L350-L354)
+* **Problem**: Calling `getComputedStyle` inside a 60fps render loop to read `--io-header` forces the browser to perform synchronous layout recalculation, leading to severe layout thrashing and frame drops.
+* **Recommendation**: Read layout metrics only inside the `onResize` handlers or cache them in module variables, and avoid querying `getComputedStyle` inside render loops.
 
-- [ ] **Manual WebView Smoke Test**: Verify Jukebox track play, skipping, and silencing on a target mobile WebView environment (AnkiDroid/AnkiMobile) using the built `build/_ankifx.js` to ensure the audio stream bindings function correctly.
-- [ ] **Branch Housekeeping**: Push local `dev` commits, complete final peer review, and merge the branch into `main` cleanly.
-- [ ] **Tagging**: Tag the repository with tag `v1.0.0` on the `main` branch to align with the CDN target URL.
+### 2. UI Thread Freezes during Procedural Texture Generation
+* **Reference**: [starfield.js:L130-L167](file:///Users/robertkipa/Projects/ankifx/src/effects/starfield.js#L130-L167)
+* **Problem**: Generating a 256x256 procedural planet texture via 65,536 iterations of fractal Brownian motion (fBm) noise on the main thread when a planet resets causes a noticeable freeze (stutter) on mobile devices.
+* **Recommendation**: Pre-generate/bake planet textures at startup or resize and store them, or generate the texture incrementally over multiple frames to keep the frame rate stable.
+
+### 3. ECG Panel DOM Churn via `innerHTML` Writes on Every Frame
+* **Reference**: [ecg.js:L278-L281](file:///Users/robertkipa/Projects/ankifx/src/effects/ecg.js#L278-L281)
+* **Problem**: The ECG effect writes to `innerHTML` of the ECG status panel on every single frame, causing unnecessary DOM tree parsing and rendering overhead since the BPM and rhythm values only change once a second or on rhythm transition.
+* **Recommendation**: Cache the last rendered values and only update `innerHTML` when the rhythm or the BPM text actually changes.
+
+### 4. Excessive Canvas State Changes inside Marquee Loop
+* **Reference**: [marquee.js:L91-L107](file:///Users/robertkipa/Projects/ankifx/src/effects/marquee.js#L91-L107)
+* **Problem**: Setting and resetting `ctx.shadowColor` and `ctx.shadowBlur` inside the loop for every single character causes heavy canvas context state updates.
+* **Recommendation**: Apply the shadow properties once outside the character loop, and only modify them inside the loop if the shadow color is `'inherit'` and changes per-character.
+
+### 5. Missing Package Metadata in `package.json`
+* **Reference**: [package.json:L1-L20](file:///Users/robertkipa/Projects/ankifx/package.json#L1-L20)
+* **Problem**: `package.json` is missing standard metadata fields like `"license"`, `"repository"`, `"bugs"`, and `"keywords"`.
+* **Recommendation**: Add the missing metadata fields to match professional release standards.
 
 ---
 
-# Post-v1 Backlog
+## Nice to Have / Post-v1 Issues (🟢)
 
-These non-critical items are deferred to post-v1 development:
+### 1. Build Configs Directory is Never Cleaned
+* **Reference**: [build.js:L121-L126](file:///Users/robertkipa/Projects/ankifx/build.js#L121-L126)
+* **Problem**: `build.js` does not clean `build/configs/` before merging configurations, leaving stale, renamed, or deleted configs lingering in the final build directory.
+* **Recommendation**: Add a cleaning step in `build.js` to clear `build/configs/` before compiling.
 
-* **3.1. Clean Release Version Strings in Build Script** (⚠️ Partially Complete)
-  * *Reasoning*: Version comparison logic in `src/index.js` now strips trailing commit hashes during comparisons, but the `--release` flag in `build.js` that compiles the bundle without developer hashes is not yet implemented.
-* **3.2. Core Unit Tests** (⚠️ Partially Complete)
-  * *Reasoning*: Config validation tests were added under `tests/config-validation.test.js`, but unit tests covering the core engine singleton state lifecycle or jukebox track history limits are still missing.
-* **3.3. Prevent Residual Listener Accumulation in Debug Mode** (❌ Not Correctly Implemented)
-  * *Reasoning*: `stopDebug()` in `src/effects/debug.js` still does not clean up console intercepts or window listeners, creating minor listener accumulation on stop.
+### 2. Excessive Star Count in Starfield Effect
+* **Reference**: [starfield.js:L29](file:///Users/robertkipa/Projects/ankifx/src/effects/starfield.js#L29)
+* **Problem**: Drawing 8,000 stars on the main thread via Canvas2D causes heavy rendering workloads and will degrade performance on lower-end mobile WebViews.
+* **Recommendation**: Reduce the star count limit to a lower value (e.g., 800 - 1,500 stars) for mobile performance safety.
+
+### 3. Log Prefix Inconsistency in HTML Templates
+* **Reference**: [ankifx_mcq_front.html:L371-L373](file:///Users/robertkipa/Projects/ankifx/build/card%20templates/ankifx_mcq_front.html#L371-L373) & [ankifx_basic_front.html:L370-L372](file:///Users/robertkipa/Projects/ankifx/build/card%20templates/ankifx_basic_front.html#L370-L372)
+* **Problem**: The templates specify `afxLog(msg, level)` but do not prepend `"[Card Template] "` as defined in the bracketed subsystem prefix rules in `.cursorrules`.
+* **Recommendation**: Modify the `afxLog` definition in the templates to automatically prepend the prefix.
 
 ---
 
-# Release Recommendation
+## Dead Code / Files to Remove
 
-### Verdict: **Ready for v1 after minor fixes**
+### 1. Stale Config File `_afx_immunology.json` in Build Directory
+* **Reference**: [build/configs/_afx_immunology.json](file:///Users/robertkipa/Projects/ankifx/build/configs/_afx_immunology.json)
+* **Problem**: This file has no matching source configuration in `configs/` and is a leftover artifact from previous naming conventions (replaces `_afx_immunology_final_2024.json`).
+* **Recommendation**: Delete the stale `build/configs/_afx_immunology.json` file.
 
-**Justification**: All pre-v1 action items have been addressed. The audio self-invalidation bug (introduced by the initial fix for 2.2) has been fully resolved during this audit. Once the checklist items (primarily manual validation of the audio fix on a target device) are marked off, the code is fully stable, leak-free, and ready to be tagged as `v1.0.0`.
+---
+
+## Documentation Gaps
+
+### 1. Missing `CHANGELOG.md`
+* **Reference**: Root Directory
+* **Problem**: No changelog exists to document features, modifications, and bug fixes since initial development.
+* **Recommendation**: Create `CHANGELOG.md` in the root directory prior to tagging `v1.0.0`.
+
+### 2. Missing `CONTRIBUTING.md`
+* **Reference**: Root Directory
+* **Problem**: No contribution guidelines are defined for authors wishing to submit PRs, commit messages (Conventional Commits), or write custom effects.
+* **Recommendation**: Add a `CONTRIBUTING.md` file or create a dedicated section inside the `README.md`.
+
+---
+
+## Open Questions
+
+1. **Atrial Fibrillation baseline wave simulation**: Is the high-frequency sine combination in `getAFibBaseline` too chaotic or does it look realistic enough for clinical card templates?
+2. **CC0 License coverage of jukebox music streams**: Since the Keygen Jukebox pulls files from a third-party GitHub tracker collection, does the CC0 license for AnkiFX cover potential licensing implications of streaming retro tracker module music?
+
+---
+
+# Go / No-Go Recommendation
+
+### **Recommendation: NO-GO 🛑**
+
+**Reasoning**: 
+Release `v1.0.0` is blocked by the **CDN URL pointing to the unstable `@dev` branch** (which will cause production cards to fetch unstable development updates post-release) and the **inconsistent version gating** (where pre-release-to-stable and beta-to-beta upgrades will fail to trigger takeover and will be ignored by `index.js`). 
+
+Once the two Blockers (🔴) are resolved, and the layout thrashing/DOM churn issues (🟡) are addressed, the repository will be ready for a stable public launch.
