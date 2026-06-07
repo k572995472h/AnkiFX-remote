@@ -101,7 +101,7 @@ To ensure the update was completed successfully, review a card and verify the fo
 [SCREENSHOT: Successful Update]
 
 > [!NOTE]
-> In the future, if a minor update banner appears indicating a newer release is available, it is simply a notice. You can choose to dismiss it or follow this guide again to upgrade.
+> In the future, if a template update notice banner appears indicating a newer release is available, it is simply a notice. You can choose to dismiss it by clicking the close button. Once dismissed, the dismissed state is stored persistently in your device's `localStorage` so that the banner does not re-appear and interrupt your study sessions.
 
 ---
 

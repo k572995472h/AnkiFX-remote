@@ -65,10 +65,39 @@ function afxLog(msg, level) {
     window.AnkiFX_Loader_Logs.push({ msg: "[Card Template] " + msg, level: level || 'info' });
 }
 
+
 // ✅ correct (src/index.js takeover)
 window.AnkiFX_Loader_Logs.push({
     msg: `[Loader] Active engine v${activeVersion} destroyed successfully.`,
     level: 'success'
 });
 ```
+
+## 7. WebGL Shader Lifecycle & Resource Safety
+To prevent severe WebGL resource and memory leaks in WebKit WebViews (such as AnkiMobile on iOS), you MUST follow these shader lifetime rules:
+- **Immediate Detachment & Deletion**: For all WebGL effects, compile shaders must be detached (`gl.detachShader(program, shader)`) and deleted (`gl.deleteShader(shader)`) *immediately* after the WebGL program has successfully linked (`gl.linkProgram(program)`).
+- **Cleanup on Stop**: When `stop()` is called, all linked WebGL programs, framebuffers, textures, and buffer objects must be deleted (`gl.deleteProgram`, `gl.deleteTexture`, `gl.deleteBuffer`, etc.) to return the WebGL context to a clean state.
+
+## 8. Security & HTML Escaping
+- **XSS Prevention**: Never inject dynamic or user-controlled strings (like the changelog or update message) directly into the DOM using `innerHTML` or string interpolation without first escaping them.
+- **Escape Helper**: Use the standard `escapeHTML` helper function:
+  ```javascript
+  function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+  }
+  ```
+
+## 9. Build, Git Hooks, and CI/CD Architecture
+- **Post-Commit Hook**: The `.git/hooks/post-commit` script is the canonical build source. It automatically compiles and commits all tracked build outputs (`build/_ankifx.js`, `build/_afx_defaults.json`, `build/_afx_version.json`, `build/card templates/`) on every source commit.
+- **Release Trigger**: Releases are triggered by pushing a tag matching `v*` (e.g., `v1.0.0`) to the `main` branch.
+- **CI Verification**: The GitHub Actions release workflow (`.github/workflows/release.yml`) validates that committed build outputs match a clean rebuild, except for `build/_ankifx.js` (which contains a non-deterministic build timestamp `process.env.BUILD_DATE`).
+- **Gitignored Files**: Ensure that `build/configs/`, private configs (`configs/_afx_*.json` except defaults), and `ankifx.local.json` are gitignored and never committed or processed by CI.
+- **CDN Versioning**: Public card templates must reference the major version tag on the jsDelivr CDN (`https://cdn.jsdelivr.net/gh/robkipa/ankifx@v1/build/_ankifx.js`) to receive non-breaking automatic updates.
+- **Upgrade Notice Banner**: Ensure update notice banners store their dismissed state in `localStorage` so they do not re-appear after dismissal.
 

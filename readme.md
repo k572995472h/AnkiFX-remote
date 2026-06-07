@@ -214,7 +214,12 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 <div id="afx-config-field" style="display: none !important;">{{AnkiFXConfig}}</div>
 
 <script>
-    (function() {
+    window.AnkiFX_BOOTSTRAP = window.AnkiFX_BOOTSTRAP || {
+        cdn: "https://cdn.jsdelivr.net/gh/robkipa/ankifx@v1/build/_ankifx.js",
+        manifest: "https://cdn.jsdelivr.net/gh/robkipa/ankifx@v1/build/_afx_version.json"
+    };
+
+    (function () {
         var fieldContainer = document.getElementById("afx-config-field");
         var configText = fieldContainer ? fieldContainer.textContent.trim() : "";
         var parsed = false;
@@ -231,6 +236,10 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
         }
 
         if (configText) {
+            // Replace non-breaking spaces (\u00a0) with standard spaces to prevent JSON.parse syntax errors from Anki copy-paste
+            configText = configText.replace(/\u00a0/g, ' ');
+            // Resiliently strip trailing commas from JSON objects/arrays to prevent standard JSON.parse parsing failures
+            configText = configText.replace(/,(\s*[\]}])/g, '$1').trim();
             try {
                 window.AnkiFX_Config = decodeConfig(JSON.parse(configText));
                 parsed = true;
@@ -242,16 +251,18 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
         if (!parsed) {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", "_afx_defaults.json", true);
-            xhr.onreadystatechange = function() {
+            xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200 || xhr.status === 0) {
                         try {
                             window.AnkiFX_Config = decodeConfig(JSON.parse(xhr.responseText));
                         } catch (err) {
                             console.error("AnkiFX: Failed to parse fallback _afx_defaults.json.", err);
+                            window.AnkiFX_Config = null;
                         }
                     } else {
                         console.error("AnkiFX: Failed to load fallback _afx_defaults.json. Status: " + xhr.status);
+                        window.AnkiFX_Config = null;
                     }
                 }
             };
@@ -264,10 +275,20 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 <script src="_ankifx.js" onerror="console.warn('AnkiFX: Local engine backup not found in collection.media.')"></script>
 
 <!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
-<script id="ankifx-engine-script" src="https://cdn.jsdelivr.net/gh/robkipa/ankifx@latest/build/_ankifx.js" onerror="console.warn('AnkiFX: CDN failed to load, using local engine.')"></script>
-
 <script>
     (function() {
+        if (!document.getElementById('ankifx-engine-script')) {
+            var script = document.createElement('script');
+            script.id = 'ankifx-engine-script';
+            script.src = window.AnkiFX_BOOTSTRAP.cdn;
+            script.onerror = function() { console.warn('AnkiFX: CDN failed to load, using local engine.'); };
+            document.head.appendChild(script);
+        }
+    })();
+</script>
+
+<script>
+    (function () {
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
         var remoteScript = document.getElementById('ankifx-engine-script');
         if (remoteScript) {
@@ -277,12 +298,12 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
             } else {
                 window.AnkiFX_Remote_Status = "pending";
                 window.AnkiFX_Loader_Logs.push("Remote engine script pending...");
-                remoteScript.addEventListener('load', function() {
+                remoteScript.addEventListener('load', function () {
                     window.AnkiFX_Remote_Status = "loaded";
                     window.AnkiFX_Loader_Logs.push("Remote engine script onload fired (async).");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
-                remoteScript.addEventListener('error', function() {
+                remoteScript.addEventListener('error', function () {
                     window.AnkiFX_Remote_Status = "failed";
                     window.AnkiFX_Loader_Logs.push("Remote engine script onerror fired (async).");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
