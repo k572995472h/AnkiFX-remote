@@ -260,24 +260,24 @@
         if (remoteScript) {
             if (window.AnkiFX && window.AnkiFX.source === 'remote') {
                 window.AnkiFX_Remote_Status = "loaded";
-                afxLog("Remote engine script loaded (sync).", "success");
+                afxLog("Remote CDN engine script loaded synchronously.", "success");
             } else if (window.AnkiFX_Remote_Status === "loaded" || window.AnkiFX_Remote_Status === "failed") {
                 if (window.AnkiFX_Remote_Status === "loaded") {
-                    afxLog("Remote engine script status already resolved: loaded.", "success");
+                    afxLog("Remote CDN engine script already successfully loaded.", "success");
                 } else {
-                    afxLog("Remote engine script status already resolved: failed (using local engine fallback).", "info");
+                    afxLog("Remote CDN engine script fetch already failed (skipping re-fetch, using local fallback).", "info");
                 }
             } else {
                 window.AnkiFX_Remote_Status = "pending";
-                afxLog("Remote engine script pending...", "pending");
+                afxLog("Remote CDN engine script download pending...", "pending");
                 remoteScript.addEventListener('load', function () {
                     window.AnkiFX_Remote_Status = "loaded";
-                    afxLog("Remote engine script onload fired (async).", "success");
+                    afxLog("Remote CDN engine script loaded asynchronously.", "success");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
                 remoteScript.addEventListener('error', function () {
                     window.AnkiFX_Remote_Status = "failed";
-                    afxLog("Remote engine script onerror fired (async).", "warn");
+                    afxLog("Remote CDN engine script failed to load (falling back to local engine).", "warn");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
             }
@@ -304,7 +304,7 @@
     function triggerAnkiFX(attempts = 0) {
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
         if (attempts === 0) {
-            afxLog("triggerAnkiFX called.", "info");
+            afxLog("AnkiFX loader triggered.", "info");
         }
 
         const remoteScriptExists = !!document.getElementById('ankifx-engine-script');
@@ -319,7 +319,7 @@
             const isWaitingForRemote = (remoteStatus === "pending") && (attempts < 16);
             if (isWaitingForRemote) {
                 if (attempts % 5 === 0) {
-                    afxLog("Waiting for remote script (Attempt " + attempts + ", status=" + remoteStatus + ")...", "pending");
+                    afxLog("Waiting for remote CDN script (Attempt " + attempts + ", status=" + remoteStatus + ")...", "pending");
                 }
                 setTimeout(() => triggerAnkiFX(attempts + 1), 50);
                 return;
@@ -330,9 +330,9 @@
                     afxLog("Initializing AnkiFX engine (Source: " + (AnkiFX.source || 'local') + ", Version: " + (AnkiFX.version || '1.0.0') + ")...", "info");
                     ankiFXInitialized = true;
                     AnkiFX.init();
-                    afxLog("AnkiFX.init() success.", "success");
+                    afxLog("AnkiFX engine initialized successfully.", "success");
                 } catch (e) {
-                    afxLog("AnkiFX init error: " + e.message, "error");
+                    afxLog("AnkiFX engine initialization failed: " + e.message, "error");
                     console.error("AnkiFX Start Error:", e);
                 }
             }
@@ -340,12 +340,12 @@
             // 2. Then run the card's native content/table generator
             if (!contentInitialized) {
                 try {
-                    afxLog("Running card content run()...", "info");
+                    afxLog("Executing card rendering logic...", "info");
                     contentInitialized = true;
                     run();
-                    afxLog("Card content run() success.", "success");
+                    afxLog("Card rendered successfully.", "success");
                 } catch (e) {
-                    afxLog("Card content error: " + e.message, "error");
+                    afxLog("Card rendering logic failed: " + e.message, "error");
                     console.error("Card Content Run Error:", e);
                 }
             }
@@ -361,7 +361,7 @@
             // Graceful fallback: always execute card content even if loader fails/timeouts
             if (hasRun && !contentInitialized) {
                 try {
-                    afxLog("Loader timeout fallback: Running card content run()...", "warn");
+                    afxLog("Loader timeout fallback: Executing card rendering logic...", "warn");
                     contentInitialized = true;
                     run();
                 } catch (runErr) {
