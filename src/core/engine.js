@@ -96,7 +96,7 @@ function init(templateOptions = {}) {
 
     state.initialized = true;
     attachCardObserver(state);
-    reparentNativeElements();
+    reparentNativeElements(state);
 
     const scheduleCheck = window.requestIdleCallback || function (cb) { setTimeout(cb, 0); };
     scheduleCheck(() => {
@@ -123,7 +123,7 @@ function agree(overlay, deckTitle) {
         } catch (e) { }
     }
 
-    reparentNativeElements();
+    reparentNativeElements(state);
 }
 
 function destroy() {
@@ -169,6 +169,11 @@ function destroy() {
 
     window.AnkiFX_Config = null;
 
+    if (state._observerTimeout) {
+        clearTimeout(state._observerTimeout);
+        state._observerTimeout = null;
+    }
+
     if (state.observer) {
         state.observer.disconnect();
         state.observer = null;
@@ -192,6 +197,21 @@ function destroy() {
         clearInterval(state._resizeInterval);
         state._resizeInterval = null;
     }
+
+    if (state.glContext) {
+        if (typeof state.glContext.getExtension === 'function') {
+            const loseContextExt = state.glContext.getExtension('WEBGL_lose_context');
+            if (loseContextExt) {
+                loseContextExt.loseContext();
+            }
+        }
+        state.glContext = null;
+    }
+    state.sharedGL = null;
+    state.shared2D = null;
+    state.sharedMarquee = null;
+    state.ctx2D = null;
+    state.ctxMarquee = null;
 
     state.currentEffectId = null;
     state.initialized = false;
@@ -251,11 +271,6 @@ function isToastShown(templateName) {
         return sessionVal === 'true';
     }
 
-    const localVal = getLocalValue(key);
-    if (localVal !== null) {
-        return localVal === 'true';
-    }
-
     return !!inMemoryStorage[key];
 }
 
@@ -263,9 +278,6 @@ function setToastShown(templateName) {
     const key = `afx_legacy_toast_${templateName}`;
 
     if (setSessionValue(key, 'true')) {
-        return;
-    }
-    if (setLocalValue(key, 'true')) {
         return;
     }
     inMemoryStorage[key] = true;
@@ -319,13 +331,11 @@ export function showLegacyMigrationToast(templateName = 'unknown') {
         <button class="afx-legacy-toast-close" title="Dismiss">&times;</button>
     `;
 
-    // Save persistence immediately upon display
-    setToastShown(templateName);
-
     const closeBtn = toast.querySelector('.afx-legacy-toast-close');
     closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         toast.classList.remove('afx-legacy-visible');
+        setToastShown(templateName);
         setTimeout(() => {
             toast.remove();
         }, 400);

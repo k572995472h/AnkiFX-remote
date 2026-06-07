@@ -111,6 +111,12 @@ function createMockContext(domState = {}) {
                     stroke: () => {},
                     fillText: () => {},
                     measureText: () => ({ width: 100 }),
+                    getExtension: (name) => {
+                        if (name === 'WEBGL_lose_context') {
+                            return { loseContext: () => {} };
+                        }
+                        return null;
+                    }
                 }),
                 querySelector: (selector) => {
                     if (selector === '.afx-legacy-toast-close') {
@@ -312,6 +318,12 @@ describe('Legacy Template Migration Toast System', () => {
         flushRafs();
         const toast = appendedBodyElements.find(el => el.id === 'afx-legacy-toast');
         assert.ok(toast);
+        assert.equal(sessionStorageStore['afx_legacy_toast_unknown'], undefined);
+
+        // Click close to set sessionStorage
+        const clickHandlers = toast.closeBtn.listeners['click'] || [];
+        assert.equal(clickHandlers.length, 1);
+        clickHandlers[0]({ stopPropagation: () => {} });
         assert.equal(sessionStorageStore['afx_legacy_toast_unknown'], 'true');
 
         // Destroy and run again - it shouldn't show because session key is set
@@ -324,24 +336,10 @@ describe('Legacy Template Migration Toast System', () => {
         assert.equal(toastSecond, undefined, 'Should not show toast twice if sessionStorage has key');
     });
 
-    it('falls back to localStorage if sessionStorage is not supported', () => {
-        const { context, appendedBodyElements, localStorageStore, flushRafs } = createMockContext({
-            metaExists: false,
-            sessionStorageFail: true
-        });
-
-        context.window.AnkiFX.init();
-        flushRafs();
-        const toast = appendedBodyElements.find(el => el.id === 'afx-legacy-toast');
-        assert.ok(toast);
-        assert.equal(localStorageStore['afx_legacy_toast_unknown'], 'true', 'Should store in localStorage when sessionStorage fails');
-    });
-
-    it('falls back to in-memory tracking if both storage areas fail', () => {
+    it('falls back to in-memory tracking if sessionStorage fails', () => {
         const { context, appendedBodyElements, flushRafs } = createMockContext({
             metaExists: false,
-            sessionStorageFail: true,
-            localStorageFail: true
+            sessionStorageFail: true
         });
 
         // First run should trigger toast and not crash
@@ -351,6 +349,11 @@ describe('Legacy Template Migration Toast System', () => {
         });
         const toast = appendedBodyElements.find(el => el.id === 'afx-legacy-toast');
         assert.ok(toast);
+
+        // Click close to set in-memory flag
+        const clickHandlers = toast.closeBtn.listeners['click'] || [];
+        assert.equal(clickHandlers.length, 1);
+        clickHandlers[0]({ stopPropagation: () => {} });
 
         // Destroy and init again. The in-memory tracking should prevent duplicate toast.
         context.window.AnkiFX.destroy();

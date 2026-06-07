@@ -24,6 +24,7 @@ if (isNewer) {
             msg: `[Loader] Late takeover triggered: Upgrading active engine from v${activeVersion} to v${incomingVersion}...`,
             level: 'info'
         });
+        const savedConfig = window.AnkiFX_Config;
         try {
             currentEngine.destroy();
             window.AnkiFX_Loader_Logs.push({
@@ -36,6 +37,9 @@ if (isNewer) {
                 msg: `[Loader] Error destroying active engine: ${e.message}`,
                 level: 'error'
             });
+        }
+        if (savedConfig) {
+            window.AnkiFX_Config = savedConfig;
         }
         window.AnkiFX = AnkiFX;
         try {
