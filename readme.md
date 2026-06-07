@@ -277,7 +277,8 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 <!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
 <script>
     (function() {
-        if (!document.getElementById('ankifx-engine-script')) {
+        var isRemoteActive = window.AnkiFX && window.AnkiFX.source === 'remote';
+        if (!isRemoteActive && !document.getElementById('ankifx-engine-script')) {
             var script = document.createElement('script');
             script.id = 'ankifx-engine-script';
             script.src = window.AnkiFX_BOOTSTRAP.cdn;
@@ -318,6 +319,9 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
             }
+        } else if (window.AnkiFX && window.AnkiFX.source === 'remote') {
+            window.AnkiFX_Remote_Status = "loaded";
+            afxLog("Remote CDN engine script already active in window context.", "success");
         }
     })();
 </script>
