@@ -46,22 +46,24 @@ Next, navigate to the template editor on your desktop version of Anki:
 2. Select the deck containing your AnkiFX cards.
 3. Click on **Browse** at the top of the main window.
 4. Select any card/note from the list in the browser.
-5. In the top menu, click on **Notes** and select **Manage Note Types...**.
-6. Find and select your note type (e.g., `AnkiFX MCQ` or similar) from the list, then click **Cards...** on the right side.
+5. In the top-right menu, click **Cards...**.
 
-[SCREENSHOT: Open Card Templates]
+[SCREENSHOT: Open Card Templates](assets/card_templates.png)
 
 ---
 
 ## Step 3 — Update the Front Template
 
-The Card Template Editor will open. You will see three tabs or boxes: **Front Template**, **Styling**, and **Back Template**.
+The Card Template Editor will open. You will see three tabs or boxes: **Front Template**, **Back Template**, and **Styling**.
 
-[SCREENSHOT: Front Template Editor]
+[SCREENSHOT: Front Template Editor](assets/front_template_editor.png)
 
 1. Select the **Front Template** tab/box on the left.
 2. Click inside the code box and select everything (press `Ctrl + A` on Windows/Linux, or `Cmd + A` on Mac).
 3. Delete the selected text so the box is completely empty.
+
+[SCREENSHOT: Front Template Empty](assets/front_empty.png)
+
 4. Go back to the downloaded files from **Step 1**, copy the entire contents of the new **Front Template** code, and paste it into the empty box.
 
 > [!WARNING]
@@ -73,11 +75,14 @@ The Card Template Editor will open. You will see three tabs or boxes: **Front Te
 
 Now, repeat the same replacement process for the back of the card:
 
-[SCREENSHOT: Back Template Editor]
+[SCREENSHOT: Back Template Editor](assets/back_editor.png)
 
 1. Select the **Back Template** tab/box on the left.
 2. Click inside the code box and select everything (`Ctrl + A` / `Cmd + A`).
 3. Delete the selected text so the box is completely empty.
+
+[SCREENSHOT: Back Template Empty](assets/back_empty.png)
+
 4. Go back to the downloaded files from **Step 1**, copy the entire contents of the new **Back Template** code, and paste it into the empty box.
 
 ---
@@ -85,8 +90,10 @@ Now, repeat the same replacement process for the back of the card:
 ## Step 5 — Save Changes
 
 1. Click the **Save** button in the bottom-right corner of the Card Template Editor.
-2. Close the **Manage Note Types** window and the **Browse** window.
-3. Go back to your deck list and click on the deck to review a few cards.
+
+[SCREENSHOT: Save Changes](assets/save_changes.png)
+
+2. Go back to your deck list and click on the deck to review a few cards.
 
 ---
 
@@ -97,8 +104,6 @@ To ensure the update was completed successfully, review a card and verify the fo
 - The card contents, questions, and options render normally.
 - Your customized AnkiFX visual background and effects load correctly.
 - The **"Legacy Template Detected"** banner has disappeared.
-
-[SCREENSHOT: Successful Update]
 
 > [!NOTE]
 > In the future, if a template update notice banner appears indicating a newer release is available, it is simply a notice. You can choose to dismiss it by clicking the close button. Once dismissed, the dismissed state is stored persistently in your device's `localStorage` so that the banner does not re-appear and interrupt your study sessions.
