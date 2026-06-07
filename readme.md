@@ -290,22 +290,27 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 <script>
     (function () {
         window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+        function afxLog(msg, level) {
+            window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });
+        }
         var remoteScript = document.getElementById('ankifx-engine-script');
         if (remoteScript) {
             if (window.AnkiFX && window.AnkiFX.source === 'remote') {
                 window.AnkiFX_Remote_Status = "loaded";
-                window.AnkiFX_Loader_Logs.push("Remote engine script loaded (sync).");
+                afxLog("Remote engine script loaded (sync).", "success");
+            } else if (window.AnkiFX_Remote_Status === "loaded" || window.AnkiFX_Remote_Status === "failed") {
+                afxLog("Remote engine script status already resolved: " + window.AnkiFX_Remote_Status, window.AnkiFX_Remote_Status === "loaded" ? "success" : "warn");
             } else {
                 window.AnkiFX_Remote_Status = "pending";
-                window.AnkiFX_Loader_Logs.push("Remote engine script pending...");
+                afxLog("Remote engine script pending...", "pending");
                 remoteScript.addEventListener('load', function () {
                     window.AnkiFX_Remote_Status = "loaded";
-                    window.AnkiFX_Loader_Logs.push("Remote engine script onload fired (async).");
+                    afxLog("Remote engine script onload fired (async).", "success");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
                 remoteScript.addEventListener('error', function () {
                     window.AnkiFX_Remote_Status = "failed";
-                    window.AnkiFX_Loader_Logs.push("Remote engine script onerror fired (async).");
+                    afxLog("Remote engine script onerror fired (async).", "warn");
                     if (typeof triggerAnkiFX === 'function') triggerAnkiFX();
                 });
             }
