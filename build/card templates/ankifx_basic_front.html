@@ -376,6 +376,8 @@
             if (window.AnkiFX && window.AnkiFX.source === 'remote') {
                 window.AnkiFX_Remote_Status = "loaded";
                 afxLog("Remote engine script loaded (sync).", "success");
+            } else if (window.AnkiFX_Remote_Status === "loaded" || window.AnkiFX_Remote_Status === "failed") {
+                afxLog("Remote engine script status already resolved: " + window.AnkiFX_Remote_Status, "success");
             } else {
                 window.AnkiFX_Remote_Status = "pending";
                 afxLog("Remote engine script pending...", "pending");
