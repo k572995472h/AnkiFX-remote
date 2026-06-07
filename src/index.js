@@ -1,26 +1,6 @@
 import { AnkiFX } from './core/engine.js';
 import { isNewerVersion } from './core/version.js';
 
-// --- Temporary RAF Leak Diagnostic Instrumentation ---
-(function() {
-    let activeLoops = 0;
-    let rafCallsLastSecond = 0;
-    const originalRAF = window.requestAnimationFrame;
-    window.requestAnimationFrame = (cb) => {
-        activeLoops++;
-        rafCallsLastSecond++;
-        return originalRAF(cb);
-    };
-    if (window.__raf_diagnostic_interval__) {
-        clearInterval(window.__raf_diagnostic_interval__);
-    }
-    window.__raf_diagnostic_interval__ = setInterval(() => {
-        const estLoops = Math.round(rafCallsLastSecond / 60);
-        console.log(`[Diagnostic] RAF Stats: Total=${activeLoops}, Calls/sec=${rafCallsLastSecond} (~${estLoops} active loops)`);
-        rafCallsLastSecond = 0;
-    }, 1000);
-})();
-
 // Record evaluation history chronologically
 window.AnkiFX_Eval_History = window.AnkiFX_Eval_History || [];
 
