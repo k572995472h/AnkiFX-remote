@@ -219,6 +219,13 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
         manifest: "https://cdn.jsdelivr.net/gh/robkipa/ankifx@v1/build/_afx_version.json"
     };
 
+    window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
+    window.afxLog = function (msg, level) {
+        var prefixed = msg.indexOf("[Card Template]") === 0 ? msg : "[Card Template] " + msg;
+        window.AnkiFX_Loader_Logs.push({ msg: prefixed, level: level || 'info' });
+    };
+    var afxLog = window.afxLog;
+
     (function () {
         var fieldContainer = document.getElementById("afx-config-field");
         var configText = fieldContainer ? fieldContainer.textContent.trim() : "";
@@ -229,7 +236,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
                 try {
                     config.termsText = decodeURIComponent(escape(atob(config.termsText)));
                 } catch (e) {
-                    console.error("AnkiFX: Failed to decode termsText base64 string.", e);
+                    console.error("[Card Template] Failed to decode termsText base64 string.", e);
                 }
             }
             return config;
@@ -244,7 +251,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
                 window.AnkiFX_Config = decodeConfig(JSON.parse(configText));
                 parsed = true;
             } catch (e) {
-                console.error("AnkiFX: Failed to parse embedded AnkiFXConfig JSON. Falling back to _afx_defaults.json. Error:", e);
+                console.error("[Card Template] Failed to parse embedded AnkiFXConfig JSON. Falling back to _afx_defaults.json. Error:", e);
             }
         }
 
@@ -257,11 +264,11 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
                         try {
                             window.AnkiFX_Config = decodeConfig(JSON.parse(xhr.responseText));
                         } catch (err) {
-                            console.error("AnkiFX: Failed to parse fallback _afx_defaults.json.", err);
+                            console.error("[Card Template] Failed to parse fallback _afx_defaults.json.", err);
                             window.AnkiFX_Config = null;
                         }
                     } else {
-                        console.error("AnkiFX: Failed to load fallback _afx_defaults.json. Status: " + xhr.status);
+                        console.error("[Card Template] Failed to load fallback _afx_defaults.json. Status: " + xhr.status);
                         window.AnkiFX_Config = null;
                     }
                 }
@@ -272,7 +279,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 </script>
 
 <!-- Load the local offline engine backup first (static load is 100% mobile-resilient and CORS-safe) -->
-<script src="_ankifx.js" onerror="console.warn('AnkiFX: Local engine backup not found in collection.media.')"></script>
+<script src="_ankifx.js" onerror="console.warn('[Card Template] Local engine backup not found in collection.media.')"></script>
 
 <!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
 <script>
@@ -282,7 +289,7 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
             var script = document.createElement('script');
             script.id = 'ankifx-engine-script';
             script.src = window.AnkiFX_BOOTSTRAP.cdn;
-            script.onerror = function() { console.warn('AnkiFX: CDN failed to load, using local engine.'); };
+            script.onerror = function() { console.warn('[Card Template] CDN failed to load, using local engine.'); };
             document.head.appendChild(script);
         }
     })();
@@ -290,10 +297,6 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 
 <script>
     (function () {
-        window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
-        function afxLog(msg, level) {
-            window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });
-        }
         var remoteScript = document.getElementById('ankifx-engine-script');
         if (remoteScript) {
             if (window.AnkiFX && window.AnkiFX.source === 'remote') {
@@ -327,11 +330,6 @@ The engine's secure assignment logic protects the global `window.AnkiFX` referen
 </script>
 
 <script>
-    // Initialize global loader logs
-    window.AnkiFX_Loader_Logs = window.AnkiFX_Loader_Logs || [];
-    function afxLog(msg, level) {
-        window.AnkiFX_Loader_Logs.push({ msg: msg, level: level || 'info' });
-    }
     afxLog("Template loaded.", "info");
 
     // Closure-scoped flags to prevent duplicate execution within the same card's lifecycle
