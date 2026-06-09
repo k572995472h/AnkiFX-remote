@@ -48,7 +48,7 @@ Next, navigate to the template editor on your desktop version of Anki:
 4. Select any card/note from the list in the browser.
 5. In the top-right menu, click **Cards...**.
 
-[SCREENSHOT: Open Card Templates](assets/card_templates.png)
+![SCREENSHOT: Open Card Templates](assets/card_templates.png)
 
 ---
 
@@ -56,13 +56,13 @@ Next, navigate to the template editor on your desktop version of Anki:
 
 The Card Template Editor will open. You will see three tabs or boxes: **Front Template**, **Back Template**, and **Styling**.
 
-[SCREENSHOT: Front Template Editor](assets/front_template_editor.png)
+![SCREENSHOT: Front Template Editor](assets/front_template_editor.png)
 
 1. Select the **Front Template** tab/box on the left.
 2. Click inside the code box and select everything (press `Ctrl + A` on Windows/Linux, or `Cmd + A` on Mac).
 3. Delete the selected text so the box is completely empty.
 
-[SCREENSHOT: Front Template Empty](assets/front_empty.png)
+![SCREENSHOT: Front Template Empty](assets/front_empty.png)
 
 4. Go back to the downloaded files from **Step 1**, copy the entire contents of the new **Front Template** code, and paste it into the empty box.
 
@@ -75,13 +75,13 @@ The Card Template Editor will open. You will see three tabs or boxes: **Front Te
 
 Now, repeat the same replacement process for the back of the card:
 
-[SCREENSHOT: Back Template Editor](assets/back_editor.png)
+![SCREENSHOT: Back Template Editor](assets/back_editor.png)
 
 1. Select the **Back Template** tab/box on the left.
 2. Click inside the code box and select everything (`Ctrl + A` / `Cmd + A`).
 3. Delete the selected text so the box is completely empty.
 
-[SCREENSHOT: Back Template Empty](assets/back_empty.png)
+![SCREENSHOT: Back Template Empty](assets/back_empty.png)
 
 4. Go back to the downloaded files from **Step 1**, copy the entire contents of the new **Back Template** code, and paste it into the empty box.
 
@@ -91,7 +91,7 @@ Now, repeat the same replacement process for the back of the card:
 
 1. Click the **Save** button in the bottom-right corner of the Card Template Editor.
 
-[SCREENSHOT: Save Changes](assets/save_changes.png)
+![SCREENSHOT: Save Changes](assets/save_changes.png)
 
 2. Go back to your deck list and click on the deck to review a few cards.
 
