@@ -629,14 +629,16 @@ export function runDebug(contexts, config) {
         }
 
         // Update Corner Markers text
-        const cornersText = `${currentW}x${visibleH}`;
+        const roundedW = Math.round(currentW);
+        const roundedH = Math.round(visibleH);
+        const cornersText = `${roundedW}x${roundedH}`;
         if (cornersText !== lastCornersText) {
             corners.topLeft.textContent = `(0,0)`;
-            corners.topRight.textContent = `(${currentW},0)`;
-            corners.bottomLeft.textContent = `(0,${visibleH})`;
-            corners.bottomRight.textContent = `(${currentW},${visibleH})`;
-            corners.bottomLeft.style.top = `${visibleH - 18}px`;
-            corners.bottomRight.style.top = `${visibleH - 18}px`;
+            corners.topRight.textContent = `(${roundedW},0)`;
+            corners.bottomLeft.textContent = `(0,${roundedH})`;
+            corners.bottomRight.textContent = `(${roundedW},${roundedH})`;
+            corners.bottomLeft.style.top = `${roundedH - 18}px`;
+            corners.bottomRight.style.top = `${roundedH - 18}px`;
             lastCornersText = cornersText;
         }
 

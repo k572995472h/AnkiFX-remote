@@ -62,6 +62,10 @@ function init(templateOptions = {}) {
 
     document.documentElement.classList.remove('afx-scroll-lock');
     document.documentElement.classList.remove('afx-agreed');
+    document.documentElement.classList.remove('afx-ankidroid');
+    if (/Android/i.test(navigator.userAgent)) {
+        document.documentElement.classList.add('afx-ankidroid');
+    }
 
     MANAGED_ELEMENT_IDS.forEach(id => {
         const el = document.getElementById(id);
@@ -168,6 +172,7 @@ function destroy() {
 
     document.documentElement.classList.remove('afx-scroll-lock');
     document.documentElement.classList.remove('afx-agreed');
+    document.documentElement.classList.remove('afx-ankidroid');
     Array.from(document.documentElement.classList).forEach(c => {
         if (c.startsWith('afx-effect-')) {
             document.documentElement.classList.remove(c);

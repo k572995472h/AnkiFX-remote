@@ -166,6 +166,24 @@ body>*,
     display: none !important;
 }
 
+/* --- AnkiDroid Scroll Fix --- */
+html.afx-ankidroid,
+html.afx-ankidroid body {
+    overflow: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
+}
+
+html.afx-ankidroid .card {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+html.afx-ankidroid #qa {
+    overflow-y: visible !important;
+    height: auto !important;
+}
+
 /* Reveal corner controls only after agreement */
 .afx-agreed-state #afx-bottom-dock {
     display: flex !important;
