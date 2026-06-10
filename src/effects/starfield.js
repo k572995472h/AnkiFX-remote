@@ -25,6 +25,24 @@ export function runStarfield(contexts, config) {
     currentW = contexts.width;
     currentH = contexts.height;
 
+    let planetsEnabled = localStorage.getItem('ankifx_starfield_planets') !== 'false';
+
+    effect.controls = [
+        {
+            type: 'button',
+            id: 'starfield-planet-toggle',
+            label: planetsEnabled ? '🪐 DISABLE PLANET' : '🪐 ENABLE PLANET',
+            onClick: () => {
+                planetsEnabled = !planetsEnabled;
+                localStorage.setItem('ankifx_starfield_planets', planetsEnabled);
+                if (effect.controls && effect.controls[0]) {
+                    effect.controls[0].label = planetsEnabled ? '🪐 DISABLE PLANET' : '🪐 ENABLE PLANET';
+                    AnkiFX.renderEffectControls(effect);
+                }
+            }
+        }
+    ];
+
     const stars = [];
     const numStars = 8000;
     
@@ -250,8 +268,12 @@ export function runStarfield(contexts, config) {
         const cy = currentH / 2;
 
         time += 0.01;
-        planet.update();
-        planet.draw(ctx);
+        if (planetsEnabled) {
+            planet.update();
+            planet.draw(ctx);
+        } else {
+            planet.active = false;
+        }
 
         for (let i = 0; i < numStars; i++) {
             const star = stars[i];
