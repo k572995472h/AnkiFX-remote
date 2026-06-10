@@ -1,5 +1,5 @@
 import { AnkiFX } from './core/engine.js';
-import { isNewerVersion } from './core/version.js';
+import { isNewerVersion, isNewerBuildDate } from './core/version.js';
 
 // Record evaluation history chronologically
 let initialEvalHistory = [];
@@ -35,7 +35,11 @@ const isAlreadyInitialized = currentEngine && currentEngine.initialized;
 let isIgnored = false;
 let ignoreReason = '';
 
-const isNewer = !currentEngine || isNewerVersion(incomingVersion, activeVersion);
+const isVersionNewer = !currentEngine || isNewerVersion(incomingVersion, activeVersion);
+const isVersionEqual = currentEngine && !isNewerVersion(incomingVersion, activeVersion) && !isNewerVersion(activeVersion, incomingVersion);
+const isBuildNewer = isVersionEqual && isNewerBuildDate(AnkiFX.buildDate, currentEngine && currentEngine.buildDate);
+
+const isNewer = isVersionNewer || isBuildNewer;
 
 if (isNewer) {
     if (isAlreadyInitialized) {
@@ -93,9 +97,11 @@ if (isNewer) {
     }
 } else {
     isIgnored = true;
-    ignoreReason = `ignored (older or equal version: active=${activeVersion}, incoming=${incomingVersion})`;
+    const activeBuild = currentEngine && currentEngine.buildDate ? currentEngine.buildDate : 'unknown';
+    const incomingBuild = AnkiFX.buildDate || 'unknown';
+    ignoreReason = `ignored (older or equal version and build: active=${activeVersion}@${activeBuild}, incoming=${incomingVersion}@${incomingBuild})`;
     console.info(
-        `[Loader] Incoming engine v${incomingVersion} is not newer than active engine v${activeVersion}. Ignoring.`
+        `[Loader] Incoming engine v${incomingVersion} (built ${incomingBuild}) is not newer than active engine v${activeVersion} (built ${activeBuild}). Ignoring.`
     );
 }
 

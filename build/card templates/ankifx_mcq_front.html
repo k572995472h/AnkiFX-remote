@@ -1,16 +1,35 @@
-<script>
-    // Loading Persistence
-    // https://github.com/SimonLammer/anki-persistence
-    // v1.1.8 - https://github.com/SimonLammer/anki-persistence/blob/584396fea9dea0921011671a47a0fdda19265e62/script.js
-    if (void 0 === window.Persistence) { var e = "github.com/SimonLammer/anki-persistence/", t = "_default"; if (window.Persistence_sessionStorage = function () { var i = !1; try { "object" == typeof window.sessionStorage && (i = !0, this.clear = function () { for (var t = 0; t < sessionStorage.length; t++) { var i = sessionStorage.key(t); 0 == i.indexOf(e) && (sessionStorage.removeItem(i), t--) } }, this.setItem = function (i, n) { void 0 == n && (n = i, i = t), sessionStorage.setItem(e + i, JSON.stringify(n)) }, this.getItem = function (i) { return void 0 == i && (i = t), JSON.parse(sessionStorage.getItem(e + i)) }, this.removeItem = function (i) { void 0 == i && (i = t), sessionStorage.removeItem(e + i) }, this.getAllKeys = function () { for (var t = [], i = Object.keys(sessionStorage), n = 0; n < i.length; n++) { var s = i[n]; 0 == s.indexOf(e) && t.push(s.substring(e.length, s.length)) } return t.sort() }) } catch (n) { } this.isAvailable = function () { return i } }, window.Persistence_windowKey = function (i) { var n = window[i], s = !1; "object" == typeof n && (s = !0, this.clear = function () { n[e] = {} }, this.setItem = function (i, s) { void 0 == s && (s = i, i = t), n[e][i] = s }, this.getItem = function (i) { return void 0 == i && (i = t), void 0 == n[e][i] ? null : n[e][i] }, this.removeItem = function (i) { void 0 == i && (i = t), delete n[e][i] }, this.getAllKeys = function () { return Object.keys(n[e]) }, void 0 == n[e] && this.clear()), this.isAvailable = function () { return s } }, window.Persistence = new Persistence_sessionStorage, Persistence.isAvailable() || (window.Persistence = new Persistence_windowKey("py")), !Persistence.isAvailable()) { var i = window.location.toString().indexOf("title"), n = window.location.toString().indexOf("main", i); i > 0 && n > 0 && n - i < 10 && (window.Persistence = new Persistence_windowKey("qt")) } }
-</script>
-
 <!-- AnkiFX Template Metadata -->
 <div id="ankifx-template-meta" style="display: none !important;" data-template-name="front_mcq"
     data-template-version="1.0.0" data-engine-compatibility=">=1.0.0"></div>
 
 <!-- Reserved Container for Update Banner -->
 <div id="afx-update-banner-root"></div>
+
+<div class="afx-mcq-card">
+    {{#Title}}<div class="afx-mcq-title">{{Title}}</div>{{/Title}}
+    {{#Question}}<div id="afx-mcq-question" class="afx-mcq-question">{{Question}}</div>{{/Question}}
+    <div id="afxMcqOptions" class="afx-mcq-options">
+        {{#Q_1}}<div class="afx-mcq-opt" data-letter="A"><span class="afx-mcq-letter">A</span>
+            <div class="afx-mcq-text">{{Q_1}}</div><span class="afx-mcq-badge"></span>
+        </div>{{/Q_1}}
+        {{#Q_2}}<div class="afx-mcq-opt" data-letter="B"><span class="afx-mcq-letter">B</span>
+            <div class="afx-mcq-text">{{Q_2}}</div><span class="afx-mcq-badge"></span>
+        </div>{{/Q_2}}
+        {{#Q_3}}<div class="afx-mcq-opt" data-letter="C"><span class="afx-mcq-letter">C</span>
+            <div class="afx-mcq-text">{{Q_3}}</div><span class="afx-mcq-badge"></span>
+        </div>{{/Q_3}}
+        {{#Q_4}}<div class="afx-mcq-opt" data-letter="D"><span class="afx-mcq-letter">D</span>
+            <div class="afx-mcq-text">{{Q_4}}</div><span class="afx-mcq-badge"></span>
+        </div>{{/Q_4}}
+        {{#Q_5}}<div class="afx-mcq-opt" data-letter="E"><span class="afx-mcq-letter">E</span>
+            <div class="afx-mcq-text">{{Q_5}}</div><span class="afx-mcq-badge"></span>
+        </div>{{/Q_5}}
+    </div>
+    <div id="afx-mcq-hint" class="afx-mcq-hint">Tap an option, then show the answer.</div>
+</div>
+
+<div class="hidden" id="Q_solutions">{{Answers}}</div>
+<div class="hidden" id="Card_Type">{{QType (0=kprim,1=mc,2=sc)}}</div>
 
 <script>
     window.AnkiFX_BOOTSTRAP = window.AnkiFX_BOOTSTRAP || {
@@ -242,17 +261,18 @@
 </script>
 
 <!-- Load the local offline engine backup first (static load is 100% mobile-resilient and CORS-safe) -->
-<script src="_ankifx.js" onerror="console.warn('[Card Template] Local engine backup not found in collection.media.')"></script>
+<script src="_ankifx.js"
+    onerror="console.warn('[Card Template] Local engine backup not found in collection.media.')"></script>
 
 <!-- Load the latest remote engine CDN (parsed sequentially, overrides local global if online) -->
 <script>
-    (function() {
+    (function () {
         var isRemoteActive = window.AnkiFX && window.AnkiFX.source === 'remote';
         if (!isRemoteActive && !document.getElementById('ankifx-engine-script')) {
             var script = document.createElement('script');
             script.id = 'ankifx-engine-script';
             script.src = window.AnkiFX_BOOTSTRAP.cdn;
-            script.onerror = function() { console.warn('[Card Template] CDN failed to load, using local engine.'); };
+            script.onerror = function () { console.warn('[Card Template] CDN failed to load, using local engine.'); };
             document.head.appendChild(script);
         }
     })();
@@ -374,237 +394,205 @@
     }
 </script>
 
-
-
-{{#Title}}<h3 id="myH1">{{Title}}</h3>{{/Title}}
-{{#Question}}<p>{{Question}}</p>{{/Question}}
-
-<div class="tappable">
-    <table id="qtable"></table>
-</div>
-
-<div class="hidden" id="Q_solutions">{{Answers}}</div>
-<div class="hidden" id="Card_Type">{{QType (0=kprim,1=mc,2=sc)}}</div>
-
-<div class="hidden" id="Q_1">{{Q_1}}</div>
-<div class="hidden" id="Q_2">{{Q_2}}</div>
-<div class="hidden" id="Q_3">{{Q_3}}</div>
-<div class="hidden" id="Q_4">{{Q_4}}</div>
-<div class="hidden" id="Q_5">{{Q_5}}</div>
+<!-- Native sessionStorage used for options and state persistence -->
 
 <script>
-    // --- ANKI TABLE GENERATION LOGIC ---
-    function generateTable(attempts = 0) {
-        const qtable = document.getElementById('qtable');
-        const cardTypeEl = document.getElementById("Card_Type");
-
-        // If mandatory elements are missing, retry
-        if (!qtable || !cardTypeEl) {
-            if (attempts < 50) {
-                setTimeout(() => generateTable(attempts + 1), 50);
-            }
-            return;
-        }
-
-        const OPTIONS = { maxQuestionsToShow: 0 };
-        var type = cardTypeEl.innerHTML;
-        var table = document.createElement("table");
-        var tbody = document.createElement("tbody");
-
-        if (type == 0) tbody.innerHTML = '<tr><th>yes</th><th>no</th><th></th></tr>';
-
-        stripHtmlTagsFromSolutionString();
-        let solutions = getCorrectAnswers();
-        if (!solutions) return;
-
-        let questionTableHtmlLinesToSolution = [];
-
-        for (var i = 0; true; i++) {
-            let qEl = document.getElementById('Q_' + (i + 1));
-            // If Q_x element is not yet in DOM, we might need to wait, 
-            // but usually they arrive together with Card_Type.
-            if (qEl && qEl.innerHTML != '') {
-                var html = [];
-                let answerText = qEl.innerHTML;
-                let labelTag = (type == 0) ? '' : '<label for="inputQuestion' + (i + 1) + '">' + answerText + '</label>';
-                let textAlign = (type == 0) ? 'center' : 'left';
-
-                html.push('<tr>');
-                var maxColumns = ((type == 0) ? 2 : 1);
-                for (var j = 0; j < maxColumns; j++) {
-                    let inputTag = '<input id="inputQuestion' + (i + 1) +
-                        '" name="ans_' + ((type != 2) ? (i + 1) : 'A') +
-                        '" type="' + ((type == 1) ? 'checkbox' : 'radio') +
-                        '" value="' + ((j == 0) ? 1 : 0) + '">';
-                    html.push('<td onInput="onCheck()" style="text-align: ' + textAlign + '">' + inputTag + labelTag + '</td>');
-                }
-                if (type == 0) html.push('<td>' + answerText + '</td>');
-                html.push('</tr>');
-
-                questionTableHtmlLinesToSolution.push({
-                    html: html.join(""),
-                    solution: solutions[i]
-                });
-            } else {
-                break;
-            }
-        }
-
-        if (questionTableHtmlLinesToSolution.length === 0) {
-            // If we found NO questions but Card_Type was there, 
-            // it's possible the mustache tags haven't rendered yet? 
-            // (Unlikely but possible in some WebViews)
-            if (attempts < 20) {
-                setTimeout(() => generateTable(attempts + 1), 50);
-                return;
-            }
-        }
-
-        let shuffledQuestionTableHtmlLinesToSolution = getShuffledQuestionTableHtmlLinesToSolution(
-            questionTableHtmlLinesToSolution, type, OPTIONS['maxQuestionsToShow']);
-
-        let shuffledHtmlLines = shuffledQuestionTableHtmlLinesToSolution.map(o => o.html).join("");
-        let shuffledSolutions = shuffledQuestionTableHtmlLinesToSolution.map(o => o.solution);
-
-        tbody.innerHTML += shuffledHtmlLines;
-        table.appendChild(tbody);
-        qtable.innerHTML = table.innerHTML;
-
-        storeCorrectAnswersInHtml(shuffledSolutions);
-        onCheck();
-    }
-
-
-    function stripHtmlTagsFromSolutionString() {
-        let solEl = document.getElementById("Q_solutions");
-        if (solEl) {
-            solEl.innerHTML = solEl.innerHTML.replace(/(<([^>]+)>)/gi, "");
-        }
-    }
-
-    function getShuffledQuestionTableHtmlLinesToSolution(questionTableHtmlLinesToSolution, type, maxQuestionsToShow) {
-        if (type != 2) {
-            let shuffled = questionTableHtmlLinesToSolution.sort(() => Math.random() < 0.5 ? -1 : 1);
-            return (maxQuestionsToShow > 1) ? shuffled.slice(0, maxQuestionsToShow) : shuffled;
-        } else {
-            let correctAnswer = questionTableHtmlLinesToSolution.find(o => o.solution == 1);
-            let wrongAnswers = questionTableHtmlLinesToSolution.filter(o => o.solution == 0);
-            wrongAnswers.sort(() => Math.random() < 0.5 ? -1 : 1);
-
-            if (maxQuestionsToShow > 1) wrongAnswers = wrongAnswers.slice(0, maxQuestionsToShow - 1);
-
-            let randomIndex = Math.floor(Math.random() * (wrongAnswers.length + 1));
-            wrongAnswers.splice(randomIndex, 0, correctAnswer);
-            return wrongAnswers;
-        }
-    }
-
-    function isOptionChecked(optionRow, index) {
-        let cells = optionRow.getElementsByTagName("td");
-        if (cells[index]) {
-            let inputs = cells[index].getElementsByTagName("input");
-            if (inputs[0]) return inputs[0].checked;
-        }
-        return false;
-    }
-
-    function getUserAnswers() {
-        const cardTypeEl = document.getElementById("Card_Type");
-        const qtable = document.getElementById("qtable");
-        if (!cardTypeEl || !qtable) return [];
-
-        let type = cardTypeEl.innerHTML;
-        let tbodies = qtable.getElementsByTagName('tbody');
-        if (tbodies.length === 0) return [];
-
-        let qrows = tbodies[0].getElementsByTagName("tr");
-        let userAnswers = [];
-        for (let i = 0; i < qrows.length; i++) {
-            if (type == 0 && i == 0) continue; // Skip header
-            if (type == 0) {
-                if (isOptionChecked(qrows[i], 0)) userAnswers.push(1);
-                else if (isOptionChecked(qrows[i], 1)) userAnswers.push(0);
-                else userAnswers.push(2);
-            } else {
-                if (isOptionChecked(qrows[i], 0)) userAnswers.push(1);
-                else userAnswers.push(0);
-            }
-        }
-        return userAnswers;
-    }
-
-    function getCorrectAnswers() {
-        let solEl = document.getElementById("Q_solutions");
-        if (!solEl) return null;
-        return solEl.innerHTML.split(" ").map(string => Number(string));
-    }
-
-    function storeCorrectAnswersInHtml(solutions) {
-        let solEl = document.getElementById("Q_solutions");
-        if (solEl) solEl.innerHTML = solutions.join(" ");
-    }
-
-    function onCheck() {
-        if (typeof Persistence !== 'undefined' && Persistence.isAvailable()) {
-            Persistence.clear();
-            let userAns = getUserAnswers();
-            let corrAns = getCorrectAnswers();
-            if (userAns) Persistence.setItem('user_answers', userAns);
-            if (corrAns) Persistence.setItem('Q_solutions', corrAns);
-            Persistence.setItem('qtable', document.getElementById("qtable").innerHTML);
-        }
-    }
-
-    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-    function tickCheckboxOnNumberKeyDown(event) {
-        const keyName = event.key;
-        const qtable = document.getElementById("qtable");
-        if (!qtable) return;
-
-        let tableBodies = qtable.getElementsByTagName('tbody');
-        if (tableBodies.length === 0) return;
-
-        let tableRows = tableBodies[0].getElementsByTagName("tr");
-        if (0 < +keyName && +keyName < 10 && tableRows[+keyName - 1]) {
-            let tableData = tableRows[+keyName - 1].getElementsByTagName("td")[0];
-            if (!tableData) return;
-            let tableRow = tableData.getElementsByTagName("input")[0];
-            if (!tableRow) return;
-            tableRow.checked = !tableRow.checked;
-            onCheck();
-        }
-    }
-
-    function addCheckboxTickingShortcuts() {
-        document.removeEventListener('keydown', tickCheckboxOnNumberKeyDown, false);
-        document.addEventListener('keydown', tickCheckboxOnNumberKeyDown, false);
-    }
-
-
-    function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
+    // User-definable constant to toggle option shuffling
+    var ENABLE_SHUFFLE = true;
 
     function run() {
-        let DEFAULT_CARD_TYPE = 1;
-        let DEFAULT_SOLUTIONS = "1 0 0 0 0";
+        var box = document.getElementById('afxMcqOptions'); if (!box) return;
+        var cardTypeEl = document.getElementById('Card_Type');
+        var cardTypeVal = cardTypeEl ? cardTypeEl.textContent.trim() : '1';
 
-        let cardTypeEl = document.getElementById("Card_Type");
-        let solEl = document.getElementById("Q_solutions");
-        if (!cardTypeEl || !solEl) return;
-
-        if (isNaN(cardTypeEl.innerHTML)) {
-            cardTypeEl.innerHTML = DEFAULT_CARD_TYPE;
-        }
-        if ('{' + '{Answers}' + '}' == solEl.innerHTML) {
-            solEl.innerHTML = DEFAULT_SOLUTIONS;
+        // Map cardTypeVal numerical values to names if needed, default is multi (1) or single (2)
+        var qtype = 'multi';
+        if (cardTypeVal === '2') {
+            qtype = 'single';
+        } else if (cardTypeVal === '0') {
+            qtype = 'kprim';
         }
 
-        if (cardTypeEl.innerHTML != 0 && !isMobile()) {
-            addCheckboxTickingShortcuts();
+        var hintEl = document.getElementById('afx-mcq-hint');
+        if (hintEl) {
+            if (qtype === 'kprim') {
+                hintEl.innerHTML = "Kprim: Mark each statement True or False, then show the answer.";
+            } else if (qtype === 'multi') {
+                hintEl.innerHTML = "Multiple Choice: Select all correct options, then show the answer.";
+            } else if (qtype === 'single') {
+                hintEl.innerHTML = "Single Choice: Select the one correct option, then show the answer.";
+            }
         }
-        setTimeout(generateTable, 1);
+
+        var opts = [...box.querySelectorAll('.afx-mcq-opt')];
+        box.classList.add(qtype === 'multi' ? 'is-multi' : (qtype === 'kprim' ? 'is-kprim' : 'is-single'));
+
+        var questionEl = document.getElementById('afx-mcq-question');
+        var currentQuestion = questionEl ? questionEl.textContent.trim() : '';
+        var storedQuestion = sessionStorage.getItem("ankifx_mcq_question_text");
+        var isNewCard = (currentQuestion !== storedQuestion);
+
+        if (isNewCard) {
+            sessionStorage.removeItem("ankifx_mcq_selected");
+            sessionStorage.removeItem("ankifx_mcq_shuffled_order");
+            sessionStorage.setItem("ankifx_mcq_question_text", currentQuestion);
+        }
+
+        var order = opts.map(function (o) { return o.getAttribute('data-letter'); });
+        var storedOrderData = sessionStorage.getItem("ankifx_mcq_shuffled_order");
+        var storedOrder = null;
+        if (storedOrderData) {
+            try {
+                storedOrder = JSON.parse(storedOrderData);
+            } catch (e) { }
+        }
+
+        if (ENABLE_SHUFFLE) {
+            box.classList.add('afx-mcq-shuffle-enabled');
+            sessionStorage.setItem("ankifx_mcq_shuffle_enabled", "true");
+            if (storedOrder && storedOrder.length > 0) {
+                // Reuse existing order (e.g. when rendering FrontSide on the Back template)
+                opts.sort(function (a, b) {
+                    var letterA = a.getAttribute('data-letter');
+                    var letterB = b.getAttribute('data-letter');
+                    return storedOrder.indexOf(letterA) - storedOrder.indexOf(letterB);
+                });
+                opts.forEach(function (opt) { box.appendChild(opt); });
+                order = storedOrder;
+            } else {
+                // New card: shuffle options
+                for (var i = opts.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var temp = opts[i];
+                    opts[i] = opts[j];
+                    opts[j] = temp;
+                }
+                opts.forEach(function (opt) { box.appendChild(opt); });
+                order = opts.map(function (o) { return o.getAttribute('data-letter'); });
+                sessionStorage.setItem("ankifx_mcq_shuffled_order", JSON.stringify(order));
+            }
+        } else {
+            box.classList.remove('afx-mcq-shuffle-enabled');
+            sessionStorage.setItem("ankifx_mcq_shuffle_enabled", "false");
+            sessionStorage.setItem("ankifx_mcq_shuffled_order", JSON.stringify(order));
+        }
+
+        function syncStore() {
+            if (qtype === 'kprim') {
+                var sel = {};
+                box.querySelectorAll('.afx-mcq-opt').forEach(function (x) {
+                    var L = x.getAttribute('data-letter');
+                    if (x.classList.contains('selected-yes')) {
+                        sel[L] = 1;
+                    } else if (x.classList.contains('selected-no')) {
+                        sel[L] = 0;
+                    } else {
+                        sel[L] = 2; // Unselected
+                    }
+                });
+                sessionStorage.setItem("ankifx_mcq_selected", JSON.stringify(sel));
+            } else {
+                var sel = [];
+                box.querySelectorAll('.afx-mcq-opt.selected').forEach(function (x) {
+                    sel.push(x.getAttribute('data-letter'));
+                });
+                sessionStorage.setItem("ankifx_mcq_selected", JSON.stringify(sel));
+            }
+        }
+
+        // Helper: attach both touchstart (for iOS) and click (for desktop)
+        function addInteraction(el, handler) {
+            el.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handler();
+            }, { passive: false });
+            el.addEventListener('click', function (e) {
+                e.stopPropagation();
+                handler();
+            });
+        }
+
+        if (qtype === 'kprim') {
+            opts.forEach(function (opt) {
+                var existing = opt.querySelector('.afx-mcq-kprim-buttons');
+                if (existing) existing.remove();
+
+                var kprimDiv = document.createElement('div');
+                kprimDiv.className = 'afx-mcq-kprim-buttons';
+                kprimDiv.innerHTML = `
+                    <button class="afx-mcq-kprim-btn kprim-yes" data-value="1">True</button>
+                    <button class="afx-mcq-kprim-btn kprim-no" data-value="0">False</button>
+                `;
+                opt.appendChild(kprimDiv);
+
+                var yesBtn = kprimDiv.querySelector('.kprim-yes');
+                var noBtn = kprimDiv.querySelector('.kprim-no');
+
+                addInteraction(yesBtn, function () {
+                    yesBtn.classList.toggle('selected');
+                    noBtn.classList.remove('selected');
+                    if (yesBtn.classList.contains('selected')) {
+                        opt.classList.add('selected-yes');
+                        opt.classList.remove('selected-no');
+                    } else {
+                        opt.classList.remove('selected-yes');
+                    }
+                    syncStore();
+                });
+
+                addInteraction(noBtn, function () {
+                    noBtn.classList.toggle('selected');
+                    yesBtn.classList.remove('selected');
+                    if (noBtn.classList.contains('selected')) {
+                        opt.classList.add('selected-no');
+                        opt.classList.remove('selected-yes');
+                    } else {
+                        opt.classList.remove('selected-no');
+                    }
+                    syncStore();
+                });
+            });
+        } else {
+            opts.forEach(function (o) {
+                addInteraction(o, function () {
+                    if (qtype === 'multi') {
+                        o.classList.toggle('selected');
+                    } else {
+                        opts.forEach(function (x) { x.classList.remove('selected'); });
+                        o.classList.add('selected');
+                    }
+                    syncStore();
+                });
+            });
+        }
+
+        // Add keyboard shortcuts
+        function handleKeyDown(event) {
+            var key = event.key.toLowerCase();
+            var index = -1;
+            if (key >= '1' && key <= '7') {
+                index = parseInt(key, 10) - 1;
+            } else if (key >= 'a' && key <= 'g') {
+                index = key.charCodeAt(0) - 97;
+            }
+            if (index >= 0 && index < opts.length) {
+                var opt = opts[index];
+                if (qtype === 'kprim') {
+                    var yesBtn = opt.querySelector('.kprim-yes');
+                    var noBtn = opt.querySelector('.kprim-no');
+                    if (opt.classList.contains('selected-yes')) {
+                        if (noBtn) noBtn.click();
+                    } else {
+                        if (yesBtn) yesBtn.click();
+                    }
+                } else {
+                    opt.click();
+                }
+            }
+        }
+        document.removeEventListener('keydown', handleKeyDown);
+        document.addEventListener('keydown', handleKeyDown);
     }
 
     // --- FINAL EXECUTION TRIGGER ---

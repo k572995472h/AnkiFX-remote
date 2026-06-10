@@ -122,6 +122,50 @@ describe('Template Versioning System - Pure Logic', () => {
     });
 });
 
+describe('isNewerBuildDate - Build Date Tiebreaker', () => {
+    // Load the module source and run it in a CommonJS-compatible context
+    const versionSrc = fs.readFileSync(
+        path.join(__dirname, '../src/core/version.js'), 'utf8'
+    );
+    // Strip ES module export keywords so the vm can run it as plain JS
+    const compat = versionSrc
+        .replace(/export function /g, 'function ')
+        .replace(/export const /g, 'const ');
+
+    const ctx = {};
+    vm.runInNewContext(compat, ctx);
+    const isNewerBuildDate = ctx.isNewerBuildDate;
+
+    it('returns true when incoming date is later', () => {
+        assert.ok(isNewerBuildDate('2026-06-10T12:00:00.000Z', '2026-06-10T10:00:00.000Z'));
+    });
+
+    it('returns false when incoming date is earlier', () => {
+        assert.ok(!isNewerBuildDate('2026-06-09T00:00:00.000Z', '2026-06-10T00:00:00.000Z'));
+    });
+
+    it('returns false when dates are identical', () => {
+        assert.ok(!isNewerBuildDate('2026-06-10T12:00:00.000Z', '2026-06-10T12:00:00.000Z'));
+    });
+
+    it('returns false when either date is the "development" sentinel', () => {
+        assert.ok(!isNewerBuildDate('development', '2026-06-10T12:00:00.000Z'));
+        assert.ok(!isNewerBuildDate('2026-06-10T12:00:00.000Z', 'development'));
+        assert.ok(!isNewerBuildDate('development', 'development'));
+    });
+
+    it('returns false when either date is missing or falsy', () => {
+        assert.ok(!isNewerBuildDate(null, '2026-06-10T12:00:00.000Z'));
+        assert.ok(!isNewerBuildDate('2026-06-10T12:00:00.000Z', null));
+        assert.ok(!isNewerBuildDate(undefined, undefined));
+        assert.ok(!isNewerBuildDate('', ''));
+    });
+
+    it('does not throw on garbage input', () => {
+        assert.doesNotThrow(() => isNewerBuildDate('not-a-date', 'also-not'));
+    });
+});
+
 describe('Template Versioning System - DOM & Network Integration', () => {
     it('dispatches template status event when remote version is newer', (t) => {
         return new Promise((resolve, reject) => {

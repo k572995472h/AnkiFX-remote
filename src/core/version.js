@@ -59,3 +59,22 @@ export function isNewerVersion(incoming, current) {
     if (a.preNumber > b.preNumber) return true;
     return false;
 }
+
+/**
+ * Returns true if the incoming build date is strictly later than the current build date.
+ * Both values are ISO 8601 strings (lexicographic comparison is valid for ISO dates).
+ * Returns false if either date is missing or unparseable.
+ *
+ * @param {string} incomingDate Incoming build date ISO string
+ * @param {string} currentDate  Active engine build date ISO string
+ * @returns {boolean}
+ */
+export function isNewerBuildDate(incomingDate, currentDate) {
+    if (!incomingDate || !currentDate) return false;
+    if (incomingDate === 'development' || currentDate === 'development') return false;
+    try {
+        return new Date(incomingDate).getTime() > new Date(currentDate).getTime();
+    } catch (e) {
+        return false;
+    }
+}
