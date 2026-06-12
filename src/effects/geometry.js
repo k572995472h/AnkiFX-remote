@@ -1,4 +1,89 @@
 // ============================================================
+// 👶 THE MAGICAL GEOMETRY WORLD — ELI5 (Explain Like I'm Five) MEGACOMMENT 👶
+//
+// Hello there, little friend! Welcome to our magical screen sandbox. 
+// Let's pretend we have a playground filled with 360 friendly little dancers (we call them "entities").
+// This sandbox does some very neat things using numbers and patterns. Here is how it all works:
+//
+// 1. 🌊 THE UNIFIED FIELD (The Magical Ocean — sampleField / F)
+//    Imagine a big swimming pool of glowing water. When you throw some pebbles in, it makes ripples 
+//    that bounce and overlap. We have a function called "sampleField" (or "F" for short). Whenever we 
+//    ask it about any spot on the screen, it does some math (using Sin and Cos waves) and tells us:
+//    - "Which way is the wind blowing here?" (fOut.angle)
+//    - "How round or wavy is the water?" (fOut.curvature)
+//    - "What color should we paint this spot?" (fOut.huePhase)
+//    - "How strong is the ripple here?" (fOut.amplitude)
+//    This field is the "Master Mind" — every single thing on the screen has to ask the field what to do!
+//
+// 2. 💃 THE ENTITIES (Our 360 Little Dancers)
+//    We have exactly 360 dancers. Each dancer knows how to draw a beautiful, symmetrical flower/star shape 
+//    using "drawEntityFigure". They have inner and outer petals, and as the math transitions, they grow
+//    extra arms and fade in/out beautifully.
+//
+// 3. 🛣️ THE MOTION PATHS (How They Move)
+//    The dancers have two different games they like to play (our two projection modes):
+//    - 👁️ UNITY MODE (The Checkerboard Game):
+//      The dancers are very neat and stand in a straight grid that covers the whole screen. We figure out
+//      the best number of rows and columns to fit all 360 dancers perfectly without leaving empty corners.
+//      They use springy-bounces to glide smoothly into their assigned checkerboard seats.
+//    - 🌊 FLOW MODE (The River Swim Game):
+//      The dancers let go of their grid seats and start floating in the magical ocean. The field's ripples
+//      push them around! They get sucked into a big spiral shape in the center (like water going down a drain)
+//      and if they drift too far off the screen, they automatically splash back near the center to start again.
+//
+// 4. 🤝 THE CHORDS (Holding Hands with Friends)
+//    Dancers don't like to be lonely, so they hold hands by drawing thin red lines between themselves!
+//    - In Unity Mode, they hold hands with their next-door neighbors in the checkerboard (up, down, left, right,
+//      and diagonal neighbors). This forms a gorgeous, solid spider-web lattice over the entire screen.
+//      We pre-build these lines using "buildUnityGridChords".
+//    - In Flow Mode, they look around and hold hands with any other dancer who is floating very close to them in the water.
+//      We find these close neighbors using "buildChordPairsForThreshold".
+//
+// 5. 👣 THE MEMORY FIELD (Floor Footprints — M and dField)
+//    As our dancers move around, they leave glowing, colorful footsteps on the floor. We keep track of this on a grid
+//    called "M" (Memory). Every frame, the footsteps fade a tiny bit (the magical eraser called "dField" or "MODE_DECAY"
+//    makes them disappear slowly). The footprints are then blurred to make a soft, gorgeous glow under the dancers.
+//
+// ------------------------------------------------------------
+// 🧮 STEP-BY-STEP FUNCTION INDEX (Math and logic made simple):
+//
+// - initSymmetryTables(): Precomputes the coordinates of a circle so we can draw stars with 4 to 13 arms
+//   super fast without doing slow trigonometry inside the animation loop.
+// - sampleField(nx, ny, time) / F(nx, ny, t): The magical ocean ripple formula. It takes a coordinate (nx, ny)
+//   and the current time, does sine/cosine wave checks, and returns the angle, curvature, color, and size.
+// - samplePaletteColor(huePhaseNorm, amplitude, out): Mixes custom paints (indigo, turquoise, gold)
+//   based on the field's color phase to create a beautiful, harmonious palette.
+// - getCachedRgba(huePhase, alpha, amplitude): A paint cabinet. If we already mixed a color with a specific
+//   opacity and brightness before, we grab it from the cabinet (cache) instead of mixing it again, keeping our CPU happy.
+// - smoothstep(edge0, edge1, x): A smooth slider. When we slide from A to B, this makes the start and end speed
+//   gentle and slow, rather than a sudden jump.
+// - precomputeDecayField() / D(): Computes how fast the floor footprints fade at different distances from the center.
+//   Nodes near the edges fade faster to keep a clean vignette look.
+// - resizeBuffers() / resetAccumBuffer(): Prepares our drawing papers (canvases) when the screen size changes.
+// - sampleBilinearM(nx, ny): Checks how bright the footprints are at any exact spot on the floor.
+// - stampM(nx, ny, amount, amplitude): Dancers step on the floor here to leave a footprint.
+// - getGridDimensions(w, h): Math puzzle! Finds two whole numbers that multiply to exactly 360 (like 24 x 15)
+//   and fit the screen's shape best (wide for computers, tall for phones).
+// - buildUnityGridChords(cols, rows): Draws lines connecting each cell to its right, down, and diagonal neighbors.
+// - updateGridDimensions(): Recalculates the rows/columns when the screen resizes, and updates the checkerboard hand-holding lines.
+// - buildChordPairsForThreshold(threshold): In Flow mode, groups dancers into spatial buckets to find close friends quickly.
+// - buildAllChordPairs(): Pre-calculates close connections for all modes.
+// - initEntities(): Puts the 360 dancers at their starting circle positions when the screen first boots.
+// - projectUnityTarget(i, f, m, time, cx, cy): Calculates the exact checkerboard target coordinates for dancer "i".
+// - projectFlow(i, f, m, time, cx, cy): Calculates the target coordinates for dancer "i" as they drift down the river.
+// - cycleMode(): Toggles the active mode (grid or river) and resets transition parameters.
+// - getModeLabel(m): Returns the cute label and emoji (like "👁️ UNITY MODE" or "🌊 FLOW MODE") to show in the UI controls.
+// - updateAccumCanvas(time): Blurs and renders the footsteps into soft, glowing clouds.
+// - renderCoreGlow(ctx, cx, cy, cf): Draws a glowing central sun in the middle of the screen.
+// - _appendArcToPathFast(): Draws curved arc segments quickly.
+// - drawEntityFigure(...): Draws the complex sacred-geometry flower/star shapes with concentric rings.
+// - updateEntities(time, cx, cy): The choreographer! Evaluates the field for each dancer, moves them, and leaves footprints.
+// - drawChordFigure(ctx, time): Draws all the hand-holding lines between dancers.
+// - drawMemoryLayer(ctx, time): Draws miniature flower cells on the floor wherever the footsteps are glowing brightest.
+// - drawEntities(time, ctx, cx, cy, maxR): Renders all 360 active dancers.
+// - runGeometry(contexts, config): The main conductor! Starts the animation loop and runs it 60 times every second.
+// - stopGeometry(): Pauses the dancers and turns off the music when you leave the card.
+// ============================================================
 //  SACRED GEOMETRY ENGINE — unified field ontology
 //  One conserved field population. Four projection lenses.
 //  Modes are projections, not realities.
@@ -12,8 +97,11 @@ let animationId = null;
 let currentW, currentH;
 
 let mode = parseInt(localStorage.getItem('ankifx_geometry_mode') || '0', 10);
-const MODES = ['unity', 'light', 'flow', 'fractal'];
+const MODES = ['unity', 'flow'];
 if (isNaN(mode) || mode < 0 || mode >= MODES.length) mode = 0;
+
+let gridCols = 18;
+let gridRows = 20;
 
 // ============================================================
 //  ENTITY POOL — 360 persistent field entities
@@ -33,21 +121,21 @@ const OFF_SEED_U = 0;
 const OFF_SEED_V = 1;
 const OFF_FLOW_U = 2;
 const OFF_FLOW_V = 3;
-const OFF_X      = 4;
-const OFF_Y      = 5;
-const OFF_TX     = 6;
-const OFF_TY     = 7;
-const OFF_ALPHA  = 8;
-const OFF_ROT    = 9;
-const OFF_LEN    = 10;
-const OFF_KAP    = 11;
-const OFF_SYM    = 12;
-const OFF_LW     = 13;
-const OFF_HUE    = 14;
-const OFF_AMP    = 15;
+const OFF_X = 4;
+const OFF_Y = 5;
+const OFF_TX = 6;
+const OFF_TY = 7;
+const OFF_ALPHA = 8;
+const OFF_ROT = 9;
+const OFF_LEN = 10;
+const OFF_KAP = 11;
+const OFF_SYM = 12;
+const OFF_LW = 13;
+const OFF_HUE = 14;
+const OFF_AMP = 15;
 
 let entitiesInit = false;
-let firstFrame   = true;
+let firstFrame = true;
 
 // Memory buffers
 let mW = 0, mH = 0;
@@ -56,7 +144,7 @@ let dField = null;  // Float32Array buffer for decay field D(x, y)
 
 // Accumulation canvas (offscreen visual buffer at 1/2 resolution)
 let accumCanvas = null;
-let accumCtx    = null;
+let accumCtx = null;
 let accumW = 0, accumH = 0;
 let accumImgData = null;
 
@@ -83,28 +171,26 @@ const PALETTE = [
     { h: 220, s: 85, l: 52 },  // lapis lazuli — dominant
     { h: 174, s: 78, l: 44 },  // deep turquoise
     { h: 235, s: 70, l: 38 },  // deep indigo — darkens the cycle
-    { h:  42, s: 92, l: 56 },  // antique gold — accent
+    { h: 42, s: 92, l: 56 },  // antique gold — accent
 ];
 
 // Hoisted mode accumulation alphas to avoid per-frame allocation
-const ACCUM_ALPHA = { unity: 0.28, light: 0.35, flow: 0.18, fractal: 0.22 };
+const ACCUM_ALPHA = { unity: 0.28, flow: 0.18 };
 
 // Per-mode memory decay rates (replaces MODE_PROJECTIONS.decay)
-const MODE_DECAY = { unity: 0.95, light: 0.90, flow: 0.85, fractal: 0.93 };
+const MODE_DECAY = { unity: 0.95, flow: 0.85 };
+
+// Per-mode background fill opacities
+const MODE_BG_OPACITY = { unity: 0.04, flow: 0.07 };
 
 // Chord connections
 const CHORD_PAIRS_BY_MODE = {
     unity: [],
-    light: [],
     flow: [],
-    fractal: [],
 };
 let CHORD_PAIRS = [];
 const CHORD_THRESHOLD_BY_MODE = {
-    unity:   0.22,  // dense web — reads as all-over tiling
-    light:   0.15,  // medium — orbital rings connected
-    flow:    0.10,  // sparse — only immediate neighbors
-    fractal: 0.20,  // medium-dense — nested connectivity
+    flow: 0.10,  // sparse — only immediate neighbors
 };
 
 // ============================================================
@@ -128,12 +214,75 @@ function initSymmetryTables() {
         }
         SYM_COS[S] = cosTable;
         SYM_SIN[S] = sinTable;
-        
+
         SYM_HALF_COS[S] = Math.cos(Math.PI / S);
         SYM_HALF_SIN[S] = Math.sin(Math.PI / S);
     }
 }
 initSymmetryTables();
+
+// ============================================================
+//  UNIFORM LATTICE GRID CALCULATORS
+// ============================================================
+
+function getGridDimensions(w, h) {
+    let bestCols = 18;
+    let bestRows = 20;
+    let bestDiff = Infinity;
+    const aspect = w / h;
+    for (let c = 1; c <= N; c++) {
+        if (N % c === 0) {
+            const r = N / c;
+            const diff = Math.abs((c / r) - aspect);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestRows = r;
+            }
+        }
+    }
+    // Maintain gridCols as the one closest to aspect ratio * rows
+    bestCols = N / bestRows;
+    return { cols: bestCols, rows: bestRows };
+}
+
+function buildUnityGridChords(cols, rows) {
+    const pairs = [];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const i = r * cols + c;
+            // Horizontal right neighbor
+            if (c + 1 < cols) {
+                pairs.push(i, r * cols + (c + 1));
+            }
+            // Vertical down neighbor
+            if (r + 1 < rows) {
+                pairs.push(i, (r + 1) * cols + c);
+            }
+            // Diagonal down-right
+            if (c + 1 < cols && r + 1 < rows) {
+                pairs.push(i, (r + 1) * cols + (c + 1));
+            }
+            // Diagonal down-left
+            if (c - 1 >= 0 && r + 1 < rows) {
+                pairs.push(i, (r + 1) * cols + (c - 1));
+            }
+        }
+    }
+    return pairs;
+}
+
+function updateGridDimensions() {
+    const w = currentW || 400;
+    const h = currentH || 800;
+    const { cols, rows } = getGridDimensions(w, h);
+    gridCols = cols;
+    gridRows = rows;
+    CHORD_PAIRS_BY_MODE.unity = buildUnityGridChords(gridCols, gridRows);
+    if (MODES[mode] === 'unity') {
+        CHORD_PAIRS = CHORD_PAIRS_BY_MODE.unity;
+    }
+}
+
 
 // ============================================================
 //  THE CANONICAL FIELD (F)
@@ -145,15 +294,15 @@ initSymmetryTables();
 const fOut = { angle: 0, curvature: 0, huePhase: 0, amplitude: 0 };
 
 function sampleField(nx, ny, time) {
-    const r     = Math.sqrt(nx * nx + ny * ny);
+    const r = Math.sqrt(nx * nx + ny * ny);
     const theta = Math.atan2(ny, nx);
-    const w1    = Math.sin(r * 4.0 - time * 0.40);
-    const w2    = Math.cos(theta * 3.0 + time * 0.24);
-    const w3    = Math.sin(r * 2.2 + theta * 2.0 - time * 0.31);
-    
-    fOut.angle     = theta + Math.PI * 0.5 + w1 * w2 * 0.6 + w3 * 0.2;
+    const w1 = Math.sin(r * 4.0 - time * 0.40);
+    const w2 = Math.cos(theta * 3.0 + time * 0.24);
+    const w3 = Math.sin(r * 2.2 + theta * 2.0 - time * 0.31);
+
+    fOut.angle = theta + Math.PI * 0.5 + w1 * w2 * 0.6 + w3 * 0.2;
     fOut.curvature = w1 * 0.5 + 0.5;
-    fOut.huePhase  = 45 + 175 * (0.5 - 0.5 * Math.cos(time * 0.033 + r * 0.4));
+    fOut.huePhase = 45 + 175 * (0.5 - 0.5 * Math.cos(time * 0.033 + r * 0.4));
     fOut.amplitude = 0.5 + 0.25 * w1 + 0.25 * w2;
     return fOut;
 }
@@ -215,7 +364,7 @@ function getCachedRgba(huePhase, alpha, amplitude) {
     const hIdx = (norm * 63) | 0;         // 6 bits (0-63)
     const aIdx = Math.min(31, Math.max(0, (amplitude * 31) | 0));    // 5 bits (0-31)
     const alIdx = Math.min(63, Math.max(0, (alpha * 63) | 0));       // 6 bits (0-63)
-    
+
     // Completely isolated bit slots preventing key corruption
     const key = (hIdx << 11) | (aIdx << 6) | alIdx;
     let col = colorCache[key];
@@ -284,25 +433,25 @@ function sampleBilinearM(nx, ny) {
     const clampedNy = Math.min(1.0, Math.max(-1.0, ny));
     const nx01 = clampedNx * 0.5 + 0.5;
     const ny01 = clampedNy * 0.5 + 0.5;
-    
+
     const x_M = nx01 * (mW - 1);
     const y_M = ny01 * (mH - 1);
-    
+
     const x0 = Math.min(mW - 1, Math.max(0, Math.floor(x_M)));
     const x1 = Math.min(mW - 1, x0 + 1);
     const y0 = Math.min(mH - 1, Math.max(0, Math.floor(y_M)));
     const y1 = Math.min(mH - 1, y0 + 1);
-    
+
     const tx = x_M - x0;
     const ty = y_M - y0;
-    
+
     const val00 = M[y0 * mW + x0];
     const val10 = M[y0 * mW + x1];
     const val01 = M[y1 * mW + x0];
     const val11 = M[y1 * mW + x1];
-    
+
     return (1 - ty) * ((1 - tx) * val00 + tx * val10) +
-           ty * ((1 - tx) * val01 + tx * val11);
+        ty * ((1 - tx) * val01 + tx * val11);
 }
 
 function stampM(nx, ny, amount, amplitude) {
@@ -325,7 +474,7 @@ function stampM(nx, ny, amount, amplitude) {
 function buildChordPairsForThreshold(threshold) {
     const pairs = [];
     const threshSq = threshold * threshold;
-    
+
     const minVal = -1.1;
     const maxVal = 1.1;
     const range = maxVal - minVal;
@@ -333,7 +482,7 @@ function buildChordPairsForThreshold(threshold) {
     const cols = Math.ceil(range / cellSize);
     const rows = cols;
     const totalCells = cols * rows;
-    
+
     const grid = Array.from({ length: totalCells }, () => []);
     for (let i = 0; i < N; i++) {
         const idx = i * STRIDE;
@@ -343,17 +492,17 @@ function buildChordPairsForThreshold(threshold) {
         const cy = Math.min(rows - 1, Math.max(0, Math.floor((v - minVal) / cellSize)));
         grid[cy * cols + cx].push(i);
     }
-    
+
     const neighborOffsets = [
         [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]
     ];
-    
+
     for (let cy = 0; cy < rows; cy++) {
         for (let cx = 0; cx < cols; cx++) {
             const cellIdx = cy * cols + cx;
             const bucket = grid[cellIdx];
             if (bucket.length === 0) continue;
-            
+
             for (const offset of neighborOffsets) {
                 const nx = cx + offset[0];
                 const ny = cy + offset[1];
@@ -361,15 +510,15 @@ function buildChordPairsForThreshold(threshold) {
                     const targetIdx = ny * cols + nx;
                     const targetBucket = grid[targetIdx];
                     if (targetBucket.length === 0) continue;
-                    
+
                     const isSameCell = (cellIdx === targetIdx);
-                    
+
                     for (let i = 0; i < bucket.length; i++) {
                         const e1 = bucket[i];
                         const idx1 = e1 * STRIDE;
                         const u1 = entities[idx1 + OFF_SEED_U];
                         const v1 = entities[idx1 + OFF_SEED_V];
-                        
+
                         const startJ = isSameCell ? i + 1 : 0;
                         for (let j = startJ; j < targetBucket.length; j++) {
                             const e2 = targetBucket[j];
@@ -392,6 +541,7 @@ function buildChordPairsForThreshold(threshold) {
 
 function buildAllChordPairs() {
     for (const mName of MODES) {
+        if (mName === 'unity') continue;
         const threshold = CHORD_THRESHOLD_BY_MODE[mName];
         CHORD_PAIRS_BY_MODE[mName] = buildChordPairsForThreshold(threshold);
     }
@@ -399,7 +549,7 @@ function buildAllChordPairs() {
 
 function initEntities() {
     if (entitiesInit) return;
-    
+
     for (let i = 0; i < N; i++) {
         const t = i / N;
         const u = 2 * Math.PI * t;
@@ -430,9 +580,10 @@ function initEntities() {
         eSeedR[i] = Math.sqrt(x * x + y * y);
         eSeedTheta[i] = Math.atan2(y, x);
     }
-    
+
     buildAllChordPairs();
-    
+    updateGridDimensions();
+
     entitiesInit = true;
     firstFrame = true;
     CHORD_PAIRS = CHORD_PAIRS_BY_MODE[MODES[mode]];
@@ -446,110 +597,36 @@ function initEntities() {
 const entityProj = { x: 0, y: 0, rot: 0, len: 0, kap: 0, alpha: 0, lw: 1, sym: 1 };
 
 function projectUnityTarget(i, f, m, time, cx, cy) {
-    const tileSize = 60;
-    const idx = i * STRIDE;
-    const tx = (entities[idx + OFF_SEED_U] * 0.5 + 0.5) * currentW;
-    const ty = (entities[idx + OFF_SEED_V] * 0.5 + 0.5) * currentH;
-    entityProj.x   = Math.round(tx / tileSize) * tileSize;
-    entityProj.y   = Math.round(ty / tileSize) * tileSize;
+    const col = i % gridCols;
+    const row = Math.floor(i / gridCols);
+
+    const tx = (col + 0.5) * (currentW / gridCols);
+    const ty = (row + 0.5) * (currentH / gridRows);
+
+    entityProj.x = tx;
+    entityProj.y = ty;
     entityProj.rot = f.curvature * Math.PI * 0.6 + f.angle * 0.12;
     entityProj.len = 26 + m * 10;
     entityProj.kap = (f.curvature - 0.5) * 0.3;
     entityProj.sym = 8;
     entityProj.alpha = 0.52 * Math.max(0.35, f.amplitude) * (0.4 + 0.6 * m);
-    entityProj.lw  = 1.0 + m * 1.5;
-}
-
-function projectLight(i, f, m, time, cx, cy) {
-    const r = eSeedR[i];
-    const theta = eSeedTheta[i];
-    const maxR  = Math.max(currentW, currentH) * 0.95;
-
-    // 1. Interleaved Tri-Grid Architecture (12-Fold Geometry)
-    const gridId = i % 3; 
-    const sectors = 12;
-    const sectorAngle = (Math.PI * 2) / sectors;
-    const gridOffset = gridId * (sectorAngle / 3.0);
-    const sectorIdx = Math.round((theta - gridOffset) / sectorAngle);
-    const baseAxis = sectorIdx * sectorAngle + gridOffset;
-
-    // 2. Hyperbolic Radial Warp (Creates the Piercing Epicenter)
-    // Compresses space so that entities cluster tightly around the core singularity
-    const hyperbolicR = r / (1.0 + (1.0 - r) * 2.0); 
-    const depthScale = r * 0.2 + hyperbolicR * 0.8;
-
-    // 3. Phase-Shifted Shockwave Dilation
-    // Forces the breathing effect to propagate radially OUTWARD from the center lightsource
-    const radialPhase = time * 0.5 - depthScale * Math.PI * 2.0;
-    const waveBreathing = 0.90 + Math.sin(radialPhase) * 0.10 * f.amplitude;
-
-    // 4. Alternating Ray Proportions
-    const isEven = (sectorIdx + gridId) % 2 === 0;
-    const starExtrusion = isEven ? 1.12 : 0.88;
-    const totalRadius = maxR * 0.45 * depthScale * starExtrusion * waveBreathing;
-
-    // 5. Volumetric Coordinate Assignment
-    entityProj.x   = cx + Math.cos(baseAxis) * totalRadius;
-    entityProj.y   = cy + Math.sin(baseAxis) * totalRadius;
-
-    // 6. Tangential Crystalline Interlacing
-    const contactAngle = Math.PI * 0.25; 
-    const dynamicTwist = Math.cos(f.angle * 2.0 + depthScale * Math.PI) * 0.12 * f.curvature;
-    entityProj.rot = baseAxis + (isEven ? contactAngle : -contactAngle) + dynamicTwist;
-
-    // 7. Inverse-Square Scale Dilation (The Lightsource Illusion Engine)
-    // As entities approach the core (depthScale -> 0), their physical length explodes.
-    // This fills the empty center with a dense, blinding core of overlapping geometric flares.
-    const inverseSquareScale = 1.0 / (depthScale * depthScale * 8.0 + 0.15);
-    entityProj.len = (8 + m * 20 + inverseSquareScale * 25) * (1.2 - depthScale * 0.5); 
-
-    // 8. Calligraphic Curvature Control
-    entityProj.kap = depthScale < 0.3 ? 0.0 : (f.curvature - 0.5) * 0.18 * smoothstep(0.3, 1.0, depthScale);
-    entityProj.sym = 12;
-
-    // 9. Luminous Radiance Pipeline (Adhering strictly to F)
-    // Sample a global central field intensity to modulate the micro-shimmer
-    const centerField = F(0, 0, time);
-    const coreGlow = 1.0 - depthScale; // Core intensities fade exponentially toward perimeter
-    
-    // Combine macro field amplitude with the inverse radial depth to calculate raw opacity
-    const finalAlpha = (f.amplitude * 0.4) * (0.3 + 0.7 * m) + (coreGlow * coreGlow * 0.55 * centerField.amplitude);
-    entityProj.alpha = Math.min(1.0, Math.max(0.12, finalAlpha));
-
-    // Foreground straps grow fine and detailed; core light bursts deepen in density
-    entityProj.lw  = 0.5 + (m * 2.0) + (coreGlow * 3.5);
+    entityProj.lw = 1.0 + m * 1.5;
 }
 
 function projectFlow(i, f, m, time, cx, cy) {
     const idx = i * STRIDE;
-    entityProj.x   = (entities[idx + OFF_FLOW_U] * 0.5 + 0.5) * currentW;
-    entityProj.y   = (entities[idx + OFF_FLOW_V] * 0.5 + 0.5) * currentH;
+    entityProj.x = (entities[idx + OFF_FLOW_U] * 0.5 + 0.5) * currentW;
+    entityProj.y = (entities[idx + OFF_FLOW_V] * 0.5 + 0.5) * currentH;
     entityProj.rot = f.angle;
     entityProj.len = 80 + f.amplitude * 40;
     entityProj.kap = (f.curvature - 0.5) * 3.5;
     entityProj.sym = 6;
     entityProj.alpha = 0.28 * (0.5 + 0.5 * m);
-    entityProj.lw  = 0.5 + m * 3.0;
+    entityProj.lw = 0.5 + m * 3.0;
 }
 
-function projectFractal(i, f, m, time, cx, cy) {
-    const r = eSeedR[i];
-    const theta = eSeedTheta[i];
-    const depth = Math.min(3, Math.floor(r * 3));
-    const maxR  = Math.max(currentW, currentH) * 0.85;
-    const baseSize = maxR * 0.42 * gBreath;
-    entityProj.x   = cx + Math.cos(theta + f.angle * 0.1) * r * baseSize * 1.8;
-    entityProj.y   = cy + Math.sin(theta + f.angle * 0.1) * r * baseSize * 1.8;
-    entityProj.rot = (f.angle + f.curvature * 3) * 0.1;
-    entityProj.len = baseSize * 0.22 * Math.pow(0.60, depth);
-    entityProj.kap = (f.curvature - 0.5) * 0.6;
-    entityProj.sym = 6;
-    entityProj.alpha = 0.52 * Math.max(0.06, 0.52 - depth * 0.17);
-    entityProj.lw  = Math.max(0.5, 1.4 - depth * 0.35);
-}
-
-// Index 0 = unity, 1 = light, 2 = flow, 3 = fractal
-const PROJECTORS = [projectUnityTarget, projectLight, projectFlow, projectFractal];
+// Index 0 = unity, 1 = flow
+const PROJECTORS = [projectUnityTarget, projectFlow];
 
 // ============================================================
 //  EFFECT EXPORT AND CONTROL
@@ -565,6 +642,7 @@ export const effect = {
         resizeBuffers();
         resetAccumBuffer();
         vignetteGradient = null;
+        updateGridDimensions();
     },
     controls: [{
         type: 'button',
@@ -597,10 +675,6 @@ export function cycleMode() {
             entities[idx + OFF_FLOW_V] = entities[idx + OFF_SEED_V];
         }
     }
-    
-    if (MODES[mode] === 'fractal' && M) {
-        M.fill(0);
-    }
 
     localStorage.setItem('ankifx_geometry_mode', mode);
     if (effect.controls?.[0]) {
@@ -614,11 +688,9 @@ export function cycleMode() {
 
 function getModeLabel(m) {
     switch (MODES[m]) {
-        case 'unity':   return '👁️ UNITY MODE';
-        case 'light':   return '✨ LIGHT MODE';
-        case 'flow':    return '🌊 FLOW MODE';
-        case 'fractal': return '❄️ FRACTAL MOSAIC';
-        default:        return '👁️ MODE';
+        case 'unity': return '👁️ UNITY MODE';
+        case 'flow': return '🌊 FLOW MODE';
+        default: return '👁️ MODE';
     }
 }
 
@@ -629,11 +701,11 @@ function getModeLabel(m) {
 function resetAccumBuffer() {
     if (!accumCanvas) {
         accumCanvas = document.createElement('canvas');
-        accumCtx    = accumCanvas.getContext('2d');
+        accumCtx = accumCanvas.getContext('2d');
     }
     accumW = Math.max(1, Math.floor((currentW || 400) / 2));
     accumH = Math.max(1, Math.floor((currentH || 800) / 2));
-    accumCanvas.width  = accumW;
+    accumCanvas.width = accumW;
     accumCanvas.height = accumH;
     accumCtx.clearRect(0, 0, accumW, accumH);
     accumImgData = accumCtx.createImageData(accumW, accumH);
@@ -642,7 +714,7 @@ function resetAccumBuffer() {
 function updateAccumCanvas(time) {
     if (!accumImgData || !M) return;
     const data = new Uint32Array(accumImgData.data.buffer);
-    
+
     updateCenterColorRgb(time);
 
     const isUnity = MODES[mode] === 'unity';
@@ -652,7 +724,7 @@ function updateAccumCanvas(time) {
             const rowM = y * mW;
             const rowAccum0 = (y * 2) * accumW;
             const rowAccum1 = (y * 2 + 1) * accumW;
-            
+
             for (let x = 0; x < mW; x++) {
                 const val = M[rowM + x];
                 const destIdx0 = rowAccum0 + x * 2;
@@ -676,7 +748,7 @@ function updateAccumCanvas(time) {
                 }
                 const a = (val * 255) | 0;
                 const pixel = (a << 24) | (b << 16) | (g << 8) | r;
-                
+
                 data[destIdx0] = pixel;
                 data[destIdx0 + 1] = pixel;
                 data[destIdx1] = pixel;
@@ -688,7 +760,7 @@ function updateAccumCanvas(time) {
             const rowM = y * mW;
             const rowAccum0 = (y * 2) * accumW;
             const rowAccum1 = (y * 2 + 1) * accumW;
-            
+
             for (let x = 0; x < mW; x++) {
                 const val = M[rowM + x];
                 const destIdx0 = rowAccum0 + x * 2;
@@ -704,7 +776,7 @@ function updateAccumCanvas(time) {
 
                 const a = (val * 255) | 0;
                 const pixel = (a << 24) | (rB << 16) | (rG << 8) | rR;
-                
+
                 data[destIdx0] = pixel;
                 data[destIdx0 + 1] = pixel;
                 data[destIdx1] = pixel;
@@ -722,8 +794,8 @@ function updateAccumCanvas(time) {
 function renderCoreGlow(ctx, cx, cy, cf) {
     const r = (18 + 8 * cf.amplitude) * gBreath;
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.0);
-    g.addColorStop(0,   fieldColor(cf.huePhase, 0.08 * cf.amplitude, cf.amplitude));
-    g.addColorStop(1,   'rgba(0,0,0,0)');
+    g.addColorStop(0, fieldColor(cf.huePhase, 0.08 * cf.amplitude, cf.amplitude));
+    g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(cx, cy, r * 2.0, 0, Math.PI * 2);
@@ -745,16 +817,16 @@ function _appendArcToPathFast(ctx, x, y, perpAngle, cosA, sinA, curvature, lengt
         const radius = 1.0 / Math.abs(curvature);
         const halfAngle = Math.min(Math.PI * 0.85, (length / radius) * 0.5);
         const sign = curvature > 0 ? 1 : -1;
-        
+
         const perpCos = sign === 1 ? -sinA : sinA;
         const perpSin = sign === 1 ? cosA : -cosA;
-        
+
         const cx_arc = x + perpCos * radius;
         const cy_arc = y + perpSin * radius;
-        
+
         const startAngle = perpAngle + Math.PI - halfAngle * sign;
-        const endAngle   = perpAngle + Math.PI + halfAngle * sign;
-        
+        const endAngle = perpAngle + Math.PI + halfAngle * sign;
+
         ctx.arc(cx_arc, cy_arc, radius, startAngle, endAngle, curvature < 0);
     }
 }
@@ -762,7 +834,7 @@ function _appendArcToPathFast(ctx, x, y, perpAngle, cosA, sinA, curvature, lengt
 function drawEntityFigure(ctx, x, y, angle, curvature, length, width, color, symmetry, symFrac, hue, alpha, amp) {
     ctx.strokeStyle = color;
     const sym = Math.max(1, symmetry);
-    
+
     const cosTable = SYM_COS[sym];
     const sinTable = SYM_SIN[sym];
 
@@ -774,9 +846,9 @@ function drawEntityFigure(ctx, x, y, angle, curvature, length, width, color, sym
     // 1. Primary Outer Figure — Single batched path
     ctx.lineWidth = width;
     ctx.beginPath();
-    
+
     let perpAngle = angle + sign * Math.PI * 0.5;
-    
+
     for (let k = 0; k < sym; k++) {
         const cosK = cosA * cosTable[k] - sinA * sinTable[k];
         const sinK = sinA * cosTable[k] + cosA * sinTable[k];
@@ -790,12 +862,12 @@ function drawEntityFigure(ctx, x, y, angle, curvature, length, width, color, sym
     const innerWidth = width * 0.4;
     ctx.lineWidth = innerWidth;
     ctx.beginPath();
-    
+
     const innerAngle = angle + Math.PI / sym;
     const cosInner = Math.cos(innerAngle);
     const sinInner = Math.sin(innerAngle);
     let perpAngleInner = innerAngle + sign * Math.PI * 0.5;
-    
+
     for (let k = 0; k < sym; k++) {
         const cosK = cosInner * cosTable[k] - sinInner * sinTable[k];
         const sinK = sinInner * cosTable[k] + cosInner * sinTable[k]; // Fixed algebraic identity layout
@@ -808,16 +880,16 @@ function drawEntityFigure(ctx, x, y, angle, curvature, length, width, color, sym
     if (symFrac > 0.01) {
         const fracStep = (Math.PI * 2) / (sym + symFrac);
         const a = angle + sym * fracStep;
-        
+
         const nextCosTable = SYM_COS[sym + 1];
         const nextSinTable = SYM_SIN[sym + 1];
-        
+
         // Linearly interpolate vector components of fractional arm
         const cosOffset = 1.0 + (nextCosTable[sym] - 1.0) * symFrac;
         const sinOffset = 0.0 + (nextSinTable[sym] - 0.0) * symFrac;
         const cosK = cosA * cosOffset - sinA * sinOffset;
         const sinK = sinA * cosOffset + cosA * sinOffset;
-        
+
         const perpAngleFrac = a + sign * Math.PI * 0.5;
 
         ctx.lineWidth = width;
@@ -832,7 +904,7 @@ function drawEntityFigure(ctx, x, y, angle, curvature, length, width, color, sym
         const sinOffsetInner = SYM_HALF_SIN[sym] + (-SYM_HALF_SIN[sym + 1] - SYM_HALF_SIN[sym]) * symFrac;
         const cosKInner = cosA * cosOffsetInner - sinA * sinOffsetInner;
         const sinKInner = sinA * cosOffsetInner + cosA * sinOffsetInner;
-        
+
         const perpAngleInnerFrac = aInner + sign * Math.PI * 0.5;
 
         ctx.lineWidth = innerWidth;
@@ -852,8 +924,8 @@ function updateEntities(time, cx, cy) {
     const projectPrev = PROJECTORS[prevMode];
     const ts = transitionSmooth;
 
-    const isFlowMode = (mode === 2);
-    const flowActive = (mode === 2) || (transition < 1.0 && prevMode === 2);
+    const isFlowMode = (MODES[mode] === 'flow');
+    const flowActive = (MODES[mode] === 'flow') || (transition < 1.0 && MODES[prevMode] === 'flow');
 
     for (let i = 0; i < N; i++) {
         const idx = i * STRIDE;
@@ -875,7 +947,7 @@ function updateEntities(time, cx, cy) {
             const spd = 0.0012 + f.amplitude * 0.0018;
             entities[idx + OFF_FLOW_U] += (Math.cos(f.angle) * (1 - spiralBias) + Math.cos(spiralAngle) * spiralBias) * spd;
             entities[idx + OFF_FLOW_V] += (Math.sin(f.angle) * (1 - spiralBias) + Math.sin(spiralAngle) * spiralBias) * spd;
-            
+
             // Boundary wrap
             if (Math.abs(entities[idx + OFF_FLOW_U]) > 1.1 || Math.abs(entities[idx + OFF_FLOW_V]) > 1.1) {
                 const rRand = Math.sqrt(Math.random()) * 1.0;
@@ -898,23 +970,23 @@ function updateEntities(time, cx, cy) {
 
         if (transition < 1.0) {
             projectPrev(i, f, m, time, cx, cy);
-            const prevX   = entityProj.x,   prevY   = entityProj.y;
-            const prevRot = entityProj.rot,  prevLen = entityProj.len;
-            const prevKap = entityProj.kap,  prevAlpha = entityProj.alpha;
-            const prevLW  = entityProj.lw,   prevSym = entityProj.sym;
+            const prevX = entityProj.x, prevY = entityProj.y;
+            const prevRot = entityProj.rot, prevLen = entityProj.len;
+            const prevKap = entityProj.kap, prevAlpha = entityProj.alpha;
+            const prevLW = entityProj.lw, prevSym = entityProj.sym;
 
             // Shortest-path angle interpolation
             let diffRot = curRot - prevRot;
             diffRot = Math.atan2(Math.sin(diffRot), Math.cos(diffRot));
 
-            entities[idx + OFF_TX]     = prevX     + (curX     - prevX)     * ts;
-            entities[idx + OFF_TY]     = prevY     + (curY     - prevY)     * ts;
-            entities[idx + OFF_ROT]    = prevRot   + diffRot                * ts;
-            entities[idx + OFF_LEN]    = prevLen   + (curLen   - prevLen)   * ts;
-            entities[idx + OFF_KAP]    = prevKap   + (curKap   - prevKap)   * ts;
-            entities[idx + OFF_ALPHA]  = prevAlpha + (curAlpha - prevAlpha) * ts;
-            entities[idx + OFF_LW]     = prevLW    + (curLW    - prevLW)    * ts;
-            entities[idx + OFF_SYM]    = prevSym   + (curSym   - prevSym)   * ts;
+            entities[idx + OFF_TX] = prevX + (curX - prevX) * ts;
+            entities[idx + OFF_TY] = prevY + (curY - prevY) * ts;
+            entities[idx + OFF_ROT] = prevRot + diffRot * ts;
+            entities[idx + OFF_LEN] = prevLen + (curLen - prevLen) * ts;
+            entities[idx + OFF_KAP] = prevKap + (curKap - prevKap) * ts;
+            entities[idx + OFF_ALPHA] = prevAlpha + (curAlpha - prevAlpha) * ts;
+            entities[idx + OFF_LW] = prevLW + (curLW - prevLW) * ts;
+            entities[idx + OFF_SYM] = prevSym + (curSym - prevSym) * ts;
         } else {
             entities[idx + OFF_TX] = curX;
             entities[idx + OFF_TY] = curY;
@@ -957,7 +1029,7 @@ function updateEntities(time, cx, cy) {
 function drawChordFigure(ctx, time) {
     const cf = F(0, 0, time);
     const baseAlpha = 0.06 + 0.04 * cf.amplitude;
-    
+
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     for (let p = 0; p < CHORD_PAIRS.length; p += 2) {
@@ -969,7 +1041,7 @@ function drawChordFigure(ctx, time) {
     }
     ctx.strokeStyle = getCachedRgba(cf.huePhase, baseAlpha, cf.amplitude);
     ctx.stroke();
-    
+
     // Second pass: circles and squares at entity positions
     for (let i = 0; i < N; i++) {
         const idx = i * STRIDE;
@@ -979,20 +1051,20 @@ function drawChordFigure(ctx, time) {
         const ny = currentH > 0 ? (y / currentH - 0.5) * 2 : 0;
         const m = sampleBilinearM(nx, ny);
         if (m < 0.3) continue;
-        
+
         const len = entities[idx + OFF_LEN];
         const r = len * 0.3 * m;
         const alpha = (m - 0.3) / 0.7 * 0.25;
         const hue = entities[idx + OFF_HUE];
         const amp = entities[idx + OFF_AMP];
-        
+
         ctx.strokeStyle = getCachedRgba(hue, alpha, amp);
         ctx.lineWidth = 0.4;
-        
+
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.stroke();
-        
+
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(entities[idx + OFF_ROT]);
@@ -1012,37 +1084,37 @@ function drawMemoryLayer(ctx, time) {
 
     for (let idx = 0; idx < totalCells; idx++) {
         if (Math.random() > density) continue;
-        
+
         const col = idx % cols;
         const row = (idx / cols) | 0;
         const gx = (col + 0.5) * gridStep;
         const gy = (row + 0.5) * gridStep;
-        
+
         const nx = (gx / currentW - 0.5) * 2;
         const ny = (gy / currentH - 0.5) * 2;
         const m = sampleBilinearM(nx, ny);
         if (m < 0.25) continue;
-        
+
         const f = F(nx, ny, time);
         const sym = Math.round(4 + m * 8);
         const len = gridStep * 0.35 * m;
         const alpha = (m - 0.25) / 0.75 * 0.35;
-        
+
         ctx.strokeStyle = getCachedRgba(f.huePhase, alpha, f.amplitude);
         ctx.lineWidth = 0.6;
         ctx.beginPath();
-        
+
         const cosTable = SYM_COS[sym];
         const sinTable = SYM_SIN[sym];
-        
+
         const cosA = Math.cos(f.angle);
         const sinA = Math.sin(f.angle);
         const curvature = f.curvature * 0.4;
         const sign = curvature > 0 ? 1 : -1;
         const step = (Math.PI * 2) / sym;
-        
+
         let perpAngle = f.angle + sign * Math.PI * 0.5;
-        
+
         for (let k = 0; k < sym; k++) {
             const cosK = cosA * cosTable[k] - sinA * sinTable[k];
             const sinK = sinA * cosTable[k] + cosA * sinTable[k];
@@ -1066,7 +1138,7 @@ function drawEntities(time, ctx, cx, cy, maxR) {
             const idx = i * STRIDE;
             const alpha = entities[idx + OFF_ALPHA];
             if (alpha < 0.005) continue;
-            
+
             const symF = entities[idx + OFF_SYM];
             const symFloor = Math.max(1, Math.floor(symF));
             const symFrac = symF - symFloor;
@@ -1114,7 +1186,7 @@ export function runGeometry(contexts, config) {
     let time = 0;
 
     if (effect.controls?.[0]) effect.controls[0].label = getModeLabel(mode);
-    
+
     resizeBuffers();
     resetAccumBuffer();
     initEntities();
@@ -1124,9 +1196,9 @@ export function runGeometry(contexts, config) {
         const cy = currentH / 2;
         const maxR = Math.max(currentW, currentH) * 0.85;
         vignetteGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR * 0.9);
-        vignetteGradient.addColorStop(0,   'rgba(2,3,12,0.35)');
+        vignetteGradient.addColorStop(0, 'rgba(2,3,12,0.35)');
         vignetteGradient.addColorStop(0.5, 'rgba(0,0,0,0)');
-        vignetteGradient.addColorStop(1,   'rgba(2,3,12,0.15)');
+        vignetteGradient.addColorStop(1, 'rgba(2,3,12,0.15)');
     }
 
     function render() {
@@ -1151,7 +1223,7 @@ export function runGeometry(contexts, config) {
         const maxR = Math.max(currentW, currentH) * 0.85;
 
         ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = `rgba(2, 2, 8, ${[0.04, 0.05, 0.07, 0.06][mode]})`;
+        ctx.fillStyle = `rgba(2, 2, 8, ${MODE_BG_OPACITY[MODES[mode]]})`;
         ctx.fillRect(0, 0, currentW, currentH);
 
         ctx.globalCompositeOperation = 'lighter';
